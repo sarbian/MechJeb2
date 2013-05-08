@@ -56,15 +56,16 @@ namespace MuMech
             GUILayout.Label(MuUtils.PrettyPrint(core.attitude.pidAction), GUILayout.ExpandWidth(false));
             GUILayout.EndHorizontal();
 
+            double precision = Math.Max(0.5, Math.Min(10.0, (Math.Min(vesselState.torqueAvailable.x, vesselState.torqueAvailable.z) + vesselState.torqueThrustPYAvailable * vessel.ctrlState.mainThrottle) * 20.0 / vesselState.MoI.magnitude));
             GUILayout.BeginHorizontal();
             GUILayout.Label("Drive Action", GUILayout.ExpandWidth(true));
             GUILayout.Label(MuUtils.PrettyPrint(core.attitude.lastAct), GUILayout.ExpandWidth(false));
             GUILayout.EndHorizontal();
 
             Vector3d torque = new Vector3d(
-                                                    vesselState.torquePYAvailable + vesselState.torqueThrustPYAvailable * vessel.ctrlState.mainThrottle,
-                                                    vesselState.torqueRAvailable,
-                                                    vesselState.torquePYAvailable + vesselState.torqueThrustPYAvailable * vessel.ctrlState.mainThrottle
+                                                    vesselState.torqueAvailable.x + vesselState.torqueThrustPYAvailable * vessel.ctrlState.mainThrottle,
+                                                    vesselState.torqueAvailable.y,
+                                                    vesselState.torqueAvailable.z + vesselState.torqueThrustPYAvailable * vessel.ctrlState.mainThrottle
                                             );
 
             GUILayout.BeginHorizontal();

@@ -295,6 +295,7 @@ namespace MuMech
 
         public override void Drive(FlightCtrlState s)
         {
+            double precision = Math.Max(0.5, Math.Min(10.0, (Math.Min(vesselState.torqueAvailable.x, vesselState.torqueAvailable.z) + vesselState.torqueThrustPYAvailable * s.mainThrottle) * 20.0 / vesselState.MoI.magnitude));
             // Direction we want to be facing
             Quaternion target = attitudeGetReferenceRotation(attitudeReference) * attitudeTarget;
             Quaternion delta = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * target);
@@ -306,9 +307,9 @@ namespace MuMech
                                                 );
 
             Vector3d torque = new Vector3d(
-                                                    vesselState.torquePYAvailable + vesselState.torqueThrustPYAvailable * s.mainThrottle,
-                                                    vesselState.torqueRAvailable,
-                                                    vesselState.torquePYAvailable + vesselState.torqueThrustPYAvailable * s.mainThrottle
+                                                    vesselState.torqueAvailable.x + vesselState.torqueThrustPYAvailable * s.mainThrottle,
+                                                    vesselState.torqueAvailable.y,
+                                                    vesselState.torqueAvailable.z + vesselState.torqueThrustPYAvailable * s.mainThrottle
                                             );
 
             Vector3d inertia = Vector3d.Scale(
