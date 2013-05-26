@@ -33,9 +33,9 @@ namespace MuMech
         public bool onRCS;
         public bool conserveFuel;
 
-        [Persistent(pass = (int)Pass.Global)]
+        [Persistent(pass = (int)Pass.Global | (int)Pass.Type)]
         public double Tf = 0.2;
-        [Persistent(pass = (int)Pass.Global)]
+        [Persistent(pass = (int)Pass.Global | (int)Pass.Type)]
         [ValueInfoItem("Steering error", InfoItem.Category.Vessel, format = "F1", units = "º")]
         public MovingAverage steeringError = new MovingAverage();
 
