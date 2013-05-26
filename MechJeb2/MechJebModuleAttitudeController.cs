@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -56,8 +56,8 @@ namespace MuMech
 
         public override void OnModuleDisabled()
         {
-            part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, useSAS);
-            part.vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, false);
+            //part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, useSAS);
+            //part.vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, false);
         }
 
         public AttitudeReference attitudeReference
@@ -348,17 +348,17 @@ namespace MuMech
                     timeCount = 0;
                     if ((absErr.x > 0.05) || (absErr.y > 0.05) || (absErr.z > 0.05))
                     {
-                        part.vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, useRCS);
+                        //part.vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, useRCS);
                         onRCS = useRCS;
                     }
-                    part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, false);
+                    //part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, false);
                     onSAS = false;
                 }
                 else if (timeCount >= 50)
                 {
-                    part.vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, false);
+                    //part.vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, false);
                     onRCS = false;
-                    part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, useSAS);
+                    //part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, useSAS);
                     onSAS = useSAS;
                     if (onSAS == true)
                     {
@@ -368,9 +368,9 @@ namespace MuMech
             }
             else
             {
-                part.vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, true);
+                //part.vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, true);
                 onRCS = true;
-                part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, false);
+                //part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, false);
                 onSAS = false;
             }
         }
