@@ -85,12 +85,13 @@ namespace MuMech
         protected void ForceRoll()
         {
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("ForceROL", forceRol ? btActive : btNormal, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true)))
+            if (GUILayout.Button("ROL", forceRol ? btActive : btNormal, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(false)))
             {
                 forceRol = !forceRol;
                 Engage();
-            }            
-            GuiUtils.SimpleTextBox("ROL:", rol);
+            }
+            //GuiUtils.SimpleTextBox("", rol, "°", 60);
+            rol.text = GUILayout.TextField(rol.text, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true), GUILayout.Width(60));
             GUILayout.EndHorizontal();
         }
 

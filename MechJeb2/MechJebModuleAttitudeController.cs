@@ -26,7 +26,8 @@ namespace MuMech
         public Vector3d pidAction;  //info
         protected float timeCount = 0;
 
-        [ToggleInfoItem("Use SAS if available", InfoItem.Category.Vessel), Persistent(pass = (int)Pass.Local)]
+        [ToggleInfoItem("Manage RCS activation", InfoItem.Category.Vessel), Persistent(pass = (int)Pass.Local)]
+        public bool manageRCS;
         public bool useSAS;
         public bool onSAS;
         public bool useRCS;
@@ -50,6 +51,7 @@ namespace MuMech
         {
             onSAS = useSAS = vessel.ActionGroups[KSPActionGroup.SAS];
             onRCS = useRCS = vessel.ActionGroups[KSPActionGroup.RCS];
+            manageRCS = false;
             timeCount = 50;
             conserveFuel = true;
         }
@@ -337,6 +339,7 @@ namespace MuMech
             lastAct = act;
 
             // RCS and SAS control
+
             if (conserveFuel == true)
             {
                 if ((timeCount < 50) && (absErr.x < 0.005) && (absErr.y < 0.005) && (absErr.z < 0.005))
@@ -346,19 +349,22 @@ namespace MuMech
                 else if ((absErr.x > 0.02) || (absErr.y > 0.02) || (absErr.z > 0.02))
                 {
                     timeCount = 0;
-                    if ((absErr.x > 0.05) || (absErr.y > 0.05) || (absErr.z > 0.05))
+                    if (manageRCS && ((absErr.x > 0.05) || (absErr.y > 0.05) || (absErr.z > 0.05)))
                     {
-                        //part.vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, useRCS);
+                        part.vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, useRCS);
                         onRCS = useRCS;
                     }
-                    //part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, false);
+                    part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, false);
                     onSAS = false;
                 }
                 else if (timeCount >= 50)
                 {
-                    //part.vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, false);
-                    onRCS = false;
-                    //part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, useSAS);
+                    if (manageRCS)
+                    {
+                        part.vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, false);
+                        onRCS = false;
+                    }
+                    part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, useSAS);
                     onSAS = useSAS;
                     if (onSAS == true)
                     {
@@ -368,9 +374,12 @@ namespace MuMech
             }
             else
             {
-                //part.vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, true);
-                onRCS = true;
-                //part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, false);
+                if (manageRCS)
+                {
+                    part.vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, true);
+                    onRCS = true;
+                }
+                part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, false);
                 onSAS = false;
             }
         }

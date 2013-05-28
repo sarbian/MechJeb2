@@ -77,11 +77,11 @@ namespace MuMech
             
 
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("ForceROL", autopilot.forceRol ? btActive : btNormal, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true)))
+            if (GUILayout.Button("ROL", autopilot.forceRol ? btActive : btNormal, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true)))
             {
                 autopilot.forceRol = !autopilot.forceRol;
             }
-            GuiUtils.SimpleTextBox("ROL:", autopilot.rol);
+            autopilot.rol.text = GUILayout.TextField(autopilot.rol.text, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true), GUILayout.Width(60));
             GUILayout.EndHorizontal();
 
 

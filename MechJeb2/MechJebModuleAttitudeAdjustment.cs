@@ -25,6 +25,11 @@ namespace MuMech
             GuiUtils.SimpleTextBox("Tf (s)", Tf);
 
             GUILayout.BeginHorizontal();
+            GUILayout.Label("Manage RCS", GUILayout.ExpandWidth(true));
+            core.attitude.manageRCS = GUILayout.Toggle(core.attitude.manageRCS, "", GUILayout.ExpandWidth(false));
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
             GUILayout.Label("Use SAS", GUILayout.ExpandWidth(true));
             GUILayout.Label(core.attitude.useSAS ? "True" : "False", GUILayout.ExpandWidth(false));
             GUILayout.EndHorizontal();
