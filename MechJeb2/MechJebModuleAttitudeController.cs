@@ -27,7 +27,7 @@ namespace MuMech
         protected float timeCount = 0;
 
         [ToggleInfoItem("Manage RCS activation", InfoItem.Category.Vessel), Persistent(pass = (int)Pass.Local)]
-        public bool manageRCS;
+        public bool manageRCS = false;
         public bool useSAS;
         public bool onSAS;
         public bool useRCS;
@@ -51,7 +51,6 @@ namespace MuMech
         {
             onSAS = useSAS = vessel.ActionGroups[KSPActionGroup.SAS];
             onRCS = useRCS = vessel.ActionGroups[KSPActionGroup.RCS];
-            manageRCS = false;
             timeCount = 50;
             conserveFuel = true;
         }
