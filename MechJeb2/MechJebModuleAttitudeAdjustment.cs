@@ -25,18 +25,8 @@ namespace MuMech
             GuiUtils.SimpleTextBox("Tf (s)", Tf);
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Manage RCS", GUILayout.ExpandWidth(true));
-            core.attitude.manageRCS = GUILayout.Toggle(core.attitude.manageRCS, "", GUILayout.ExpandWidth(false));
-            GUILayout.EndHorizontal();
-
-            GUILayout.BeginHorizontal();
             GUILayout.Label("Use SAS", GUILayout.ExpandWidth(true));
             GUILayout.Label(core.attitude.useSAS ? "True" : "False", GUILayout.ExpandWidth(false));
-            GUILayout.EndHorizontal();
-
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("Use RCS", GUILayout.ExpandWidth(true));
-            GUILayout.Label(core.attitude.useRCS ? "True" : "False", GUILayout.ExpandWidth(false));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
@@ -93,6 +83,16 @@ namespace MuMech
             GUILayout.BeginHorizontal();
             GUILayout.Label("inertia", GUILayout.ExpandWidth(true));
             GUILayout.Label(MuUtils.PrettyPrint(inertia), GUILayout.ExpandWidth(false));
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("rcsThrustAvailable", GUILayout.ExpandWidth(true));
+            GUILayout.Label(MuUtils.PrettyPrint(vesselState.rcsThrustAvailable.positive), GUILayout.ExpandWidth(false));
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("rcsTorqueAvailable", GUILayout.ExpandWidth(true));
+            GUILayout.Label(MuUtils.PrettyPrint(vesselState.rcsTorqueAvailable.positive), GUILayout.ExpandWidth(false));
             GUILayout.EndHorizontal();
 
 

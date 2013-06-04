@@ -22,7 +22,7 @@ namespace MuMech
 
             foreach (Part p in parts) nodeLookup[p].FindSourceNodes(p, nodeLookup);
 
-            simStage = Staging.lastStage;
+            simStage = Staging.lastStage + 1;
 
             t = 0;
         }
@@ -31,9 +31,10 @@ namespace MuMech
         //and return stats for each stage
         public Stats[] SimulateAllStages(float throttle, float atmospheres)
         {
-            Stats[] stages = new Stats[simStage + 1];
+            Stats[] stages = new Stats[simStage];
 
-           //Debug.Log("SimulateAllStages");
+            //Debug.Log("SimulateAllStages starting from stage " + simStage);
+            SimulateStageActivation();
 
             while (simStage >= 0)
             {
@@ -121,8 +122,6 @@ namespace MuMech
         public void SimulateStageActivation()
         {
             simStage--;
-
-            //Debug.Log("Simulating activation of stage " + simStage);
 
             List<FuelNode> decoupledNodes = nodes.Where(n => n.decoupledInStage == simStage).ToList();
 
@@ -318,7 +317,7 @@ namespace MuMech
             Part p = part;
             while (true)
             {
-                if (p.IsDecoupler())
+                if (p.IsDecoupler() || p.IsLaunchClamp())
                 {
                     if (p.inverseStage > decoupledInStage) decoupledInStage = p.inverseStage;
                 }
@@ -361,7 +360,6 @@ namespace MuMech
                 //decide if it's possible to draw fuel through this node:
                 if (attachNode.attachedPart != null                            //if there is a part attached here            
                     && attachNode.nodeType == AttachNode.NodeType.Stack        //and the attached part is stacked (rather than surface mounted)
-                    && attachNode.attachedPart.fuelCrossFeed                   //and the attached part allows fuel flow
                     && !(part.NoCrossFeedNodeKey.Length > 0                    //and this part does not forbid fuel flow
                          && attachNode.id.Contains(part.NoCrossFeedNodeKey)))  //    through this particular node
                 {

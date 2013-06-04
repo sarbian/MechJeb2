@@ -398,6 +398,49 @@ namespace MuMech
             return parts.Sum(p => p.CrewCapacity);
         }
 
+        [ValueInfoItem("CoM-CoT Dist", InfoItem.Category.Vessel, showInEditor = true)]
+        public string CoMCotDist()
+        {
+            Vector3 CoT = Vector3.zero;
+            Vector3 CoM = Vector3.zero;
+            float thrust = 0;
+            float mass = 0;
+            List<Part> parts = this.parts;
+
+            if (HighLogic.LoadedSceneIsEditor)
+            {
+                if (EditorLogic.SelectedPart && EditorLogic.SelectedPart.potentialParent)
+                {
+                    parts.Add(EditorLogic.SelectedPart);
+                    parts.AddRange(EditorLogic.SelectedPart.children);
+                    foreach (Part symmetryCounterpart in EditorLogic.SelectedPart.symmetryCounterparts)
+                    {
+                        parts.Add(symmetryCounterpart);
+                        parts.AddRange(symmetryCounterpart.children);
+                    }
+                }
+            }
+            foreach (Part p in parts)
+            {
+                CenterOfThrustQuery centerOfThrustQuery = new CenterOfThrustQuery();
+                p.SendMessage("OnCenterOfThrustQuery", centerOfThrustQuery, SendMessageOptions.DontRequireReceiver);
+                CoT += centerOfThrustQuery.pos * centerOfThrustQuery.thrust;
+                thrust += centerOfThrustQuery.thrust;
+
+                if (p.physicalSignificance == Part.PhysicalSignificance.FULL)
+                {
+                    CoM += (p.transform.position + p.transform.rotation * p.CoMOffset) * (p.TotalMass());
+                    mass += p.TotalMass();
+                }
+            }
+
+            CoM = CoM / mass;
+            CoT = CoT / thrust;
+
+            Vector3 d = CoM - CoT;
+            return d.x.ToString("F3") + "," + d.y.ToString("F3") + "," + d.z.ToString("F3");
+        }
+
         [ValueInfoItem("Distance to target", InfoItem.Category.Target)]
         public string TargetDistance()
         {
