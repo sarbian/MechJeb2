@@ -318,7 +318,7 @@ namespace MuMech
                     }
                 }
             }
-
+            
             torqueAvailable += Vector3d.Max(rcsTorqueAvailable.positive, rcsTorqueAvailable.negative); // Should we use Max or Min ?
 
             thrustAvailable += einfo.thrustAvailable;
