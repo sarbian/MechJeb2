@@ -47,12 +47,12 @@ namespace MuMech
         public string status = "";
 
         //Internal state:
-        enum LandStep
+        public enum LandStep
         {
             PLANE_CHANGE, LOW_DEORBIT_BURN, DEORBIT_BURN, COURSE_CORRECTIONS, COAST_TO_DECELERATION,
             DECELERATING, KILLING_HORIZONTAL_VELOCITY, FINAL_DESCENT, UNTARGETED_DEORBIT, OFF
         }
-        LandStep landStep = LandStep.OFF;
+        public LandStep landStep = LandStep.OFF;
 
         IDescentSpeedPolicy descentSpeedPolicy;
 
@@ -299,7 +299,7 @@ namespace MuMech
             else status = "Moving to low deorbit burn point";
 
             //Warp toward deorbit burn if it hasn't been triggerd yet:
-            if (!deorbitBurnTriggered && core.node.autowarp && rangeToTarget > 2 * triggerDistance) core.warp.WarpRegularAtRate((float)(orbit.period / 6));
+            if (!deorbitBurnTriggered && core.node.autowarp && rangeToTarget > triggerDistance) core.warp.WarpRegularAtRate((float)(orbit.period / 6));
             if (rangeToTarget < triggerDistance && !MuUtils.PhysicsRunning()) core.warp.MinimumWarp();
 
             //By default, thrust straight back at max throttle
@@ -551,7 +551,11 @@ namespace MuMech
                 return;
             }
 
-            Vector3d deltaV = ComputeCourseCorrection(true);
+            Boolean allowPrograde = true;
+            // if Surface TWR is <1 we will have enought problem braking. No need to go prograde
+            if (vesselState.limitedMaxThrustAccel < mainBody.GeeASL * 9.81) allowPrograde = false;
+
+            Vector3d deltaV = ComputeCourseCorrection(allowPrograde);
 
             status = "Performing course correction of about " + deltaV.magnitude.ToString("F1") + " m/s";
 
@@ -750,7 +754,7 @@ namespace MuMech
                     //core.thrust.trans_spd_act = (float)Math.Sqrt((vesselState.maxThrustAccel - vesselState.gravityForce.magnitude) * 2 * minalt) * 0.90F;
                     Vector3d estimatedLandingPosition = vesselState.CoM + vesselState.velocityVesselSurface.sqrMagnitude / (2 * vesselState.limitedMaxThrustAccel) * vesselState.velocityVesselSurfaceUnit;
                     double terrainRadius = mainBody.Radius + mainBody.TerrainAltitude(estimatedLandingPosition);
-                    IDescentSpeedPolicy aggressivePolicy = new GravityTurnDescentSpeedPolicy(terrainRadius, mainBody.GeeASL * 9.81, vesselState.limitedMaxThrustAccel);
+                    IDescentSpeedPolicy aggressivePolicy = new GravityTurnDescentSpeedPolicy(terrainRadius, vesselState.localg, vesselState.limitedMaxThrustAccel);
                     core.thrust.trans_spd_act = (float)(aggressivePolicy.MaxAllowedSpeed(vesselState.CoM - mainBody.position, vesselState.velocityVesselSurface));
                 }
             }
@@ -815,7 +819,7 @@ namespace MuMech
                 return new CoastDescentSpeedPolicy(mainBody.Radius + DecelerationEndAltitude());
             }
 
-            return new SafeDescentSpeedPolicy(mainBody.Radius + DecelerationEndAltitude(), mainBody.GeeASL * 9.81, vesselState.limitedMaxThrustAccel);
+            return new SafeDescentSpeedPolicy(mainBody.Radius + DecelerationEndAltitude(), vesselState.localg, vesselState.limitedMaxThrustAccel);
         }
 
         double DecelerationEndAltitude()
