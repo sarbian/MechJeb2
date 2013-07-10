@@ -56,8 +56,8 @@ namespace MuMech
             new Runway //The runway on the island off the KSC coast.
             { 
                 name = "Island runway",
-                start = new Runway.Endpoint { latitude = -1.547474, longitude = -71.9611702, altitude = 48 },
-                end = new Runway.Endpoint { latitude = -1.530174, longitude = -71.8791702, altitude = 48 }
+                start = new Runway.Endpoint { latitude = -1.547474, longitude = -71.9611702, altitude = 41 },
+                end = new Runway.Endpoint { latitude = -1.530174, longitude = -71.8791702, altitude = 41 }
             }
         };
 
@@ -173,13 +173,15 @@ namespace MuMech
         public double runwayHeading = 0;
         public enum HeadingState { RIGHT, LEFT, OFF };
         public HeadingState autolandHeadingState = HeadingState.OFF;
+        public double atmCeiling = 0;
+        public Vector3d runwayStart = new Vector3d();
         public void DriveAutoland(FlightCtrlState s)
         {
             if (!part.vessel.Landed)
             {
                 if (landed) landed = false;
 
-                Vector3d runwayStart = RunwayStart();
+                runwayStart = RunwayStart();
 
                 if (!autopilotOn)
                     AutopilotOn();
@@ -227,18 +229,20 @@ namespace MuMech
                 double verticalDistanceToRunway = Vector3d.Dot(vectorToRunway, vesselState.up);
                 double horizontalDistanceToRunway = Math.Sqrt(vectorToRunway.sqrMagnitude - verticalDistanceToRunway * verticalDistanceToRunway);
                 distanceFrom = horizontalDistanceToRunway;
-                if (horizontalDistanceToRunway > 10000)
+                atmCeiling = CelestialBodyExtensions.RealMaxAtmosphereAltitude(mainBody);
+                if (horizontalDistanceToRunway > atmCeiling * 0.2)
                 {
-                    aimAltitude = 1000;
-                    double horizontalDifference = 9900;
-                    if (horizontalDistanceToRunway > 40000) { aimAltitude = 5000; horizontalDifference = 39900; }
-                    if (horizontalDistanceToRunway > 80000)
+                    aimAltitude = runway.start.altitude + atmCeiling * 0.01;
+                    double horizontalDifference = atmCeiling * 0.199;
+                    if (horizontalDistanceToRunway > atmCeiling * 0.5) { aimAltitude = runway.start.altitude + atmCeiling * 0.1; horizontalDifference = atmCeiling * 0.499; }
+                    if (horizontalDistanceToRunway > atmCeiling * 4)
                     {
+                        //fly at a steady altitude unless below 10% altitude (7km on kerbin)
                         aimAltitude = vesselState.altitudeTrue;
-                        if (aimAltitude < 5000) aimAltitude = 5000;
-                        horizontalDifference = 79900;
+                        if (aimAltitude < atmCeiling * 0.1) aimAltitude = runway.start.altitude + atmCeiling * 0.1;
+                        horizontalDifference = atmCeiling * 3.99;
                     }
-                    double setupFPA = MuUtils.Clamp(180 / Math.PI * Math.Atan2(aimAltitude - vessel.altitude, horizontalDistanceToRunway - horizontalDifference), -20, 20);
+                    double setupFPA = MuUtils.Clamp(180 / Math.PI * Math.Atan2(aimAltitude - vessel.altitude, horizontalDistanceToRunway - horizontalDifference), -20, 10);
 
                     AimVelocityVector(setupFPA, headingToWaypoint);
                 }
