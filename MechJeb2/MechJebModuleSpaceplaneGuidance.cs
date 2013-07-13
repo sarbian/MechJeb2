@@ -61,9 +61,6 @@ namespace MuMech
             autopilot.takeoffPitch = float.Parse(GUILayout.TextField(autopilot.takeoffPitch.ToString(), GUILayout.Width(40)));
             GUILayout.EndHorizontal();
 
-            GUILayout.Label(autopilot.runway.start.altitude.ToString());
-            GUILayout.Label(autopilot.aimAltitude.ToString());
-
             if (autopilot.enabled && autopilot.mode == MechJebModuleSpaceplaneAutopilot.Mode.HOLD
                 && GUILayout.Button("Abort")) autopilot.Abort();
 

@@ -50,14 +50,14 @@ namespace MuMech
             new Runway //The runway at KSC
             { 
                 name = "KSC runway",
-                start = new Runway.Endpoint { latitude = -0.040633, longitude = -74.6908, altitude = 67 }, 
-                end = new Runway.Endpoint { latitude = -0.041774, longitude = -74.5241702, altitude = 67 } 
+                start = new Runway.Endpoint { latitude = -0.040633, longitude = -74.6908, altitude = 65 }, 
+                end = new Runway.Endpoint { latitude = -0.041774, longitude = -74.5241702, altitude = 65 } 
             },
             new Runway //The runway on the island off the KSC coast.
             { 
                 name = "Island runway",
-                start = new Runway.Endpoint { latitude = -1.547474, longitude = -71.9611702, altitude = 41 },
-                end = new Runway.Endpoint { latitude = -1.530174, longitude = -71.8791702, altitude = 41 }
+                start = new Runway.Endpoint { latitude = -1.547474, longitude = -71.9611702, altitude = 39 },
+                end = new Runway.Endpoint { latitude = -1.530174, longitude = -71.8791702, altitude = 39 }
             }
         };
 
@@ -152,9 +152,12 @@ namespace MuMech
                 //pitch up for takeoff
                 if (!brakes && vesselState.time > landTime + 1.0)
                 {
-                    vessel.ctrlState.pitch = (float)(takeoffPitch - vesselState.vesselPitch) / 15;
+                    vessel.ctrlState.pitch = (float)(takeoffPitch - vesselState.vesselPitch) / 10;
                 }
-                vessel.ctrlState.yaw = (float)MuUtils.ClampDegrees180(targetHeading - vesselState.vesselHeading) * 0.1F;
+
+                float targetHead = (float)targetHeading;
+                if (Mathf.Abs((float)(targetHead - vesselState.vesselHeading)) > 5) targetHead = (float)vesselState.vesselHeading;
+                vessel.ctrlState.yaw = (float)MuUtils.Clamp(MuUtils.ClampDegrees180(targetHead - vesselState.vesselHeading) * 0.01F * (25.0F / vessel.horizontalSrfSpeed), -0.1, 0.1);
             }
 
             double targetClimbRate = (targetAltitude - vesselState.altitudeASL) / (30.0 * Math.Pow((CelestialBodyExtensions.RealMaxAtmosphereAltitude(mainBody) / (CelestialBodyExtensions.RealMaxAtmosphereAltitude(mainBody) - vesselState.altitudeASL)), 5));
@@ -218,7 +221,7 @@ namespace MuMech
                     autolandHeadingState = HeadingState.OFF;
 
                 //stop any rolling and aim down runway before touching down
-                if ((vesselState.CoM - runwayStart).magnitude < 500.0)
+                if ((vesselState.CoM - runwayStart).magnitude < 200.0)
                 {
                     Vector3d runwayDir = runway.End(vesselState.CoM) - runway.Start(vesselState.CoM);
                     runwayHeading = 180 / Math.PI * Math.Atan2(Vector3d.Dot(runwayDir, vesselState.east), Vector3d.Dot(runwayDir, vesselState.north));
@@ -226,7 +229,7 @@ namespace MuMech
                 }
 
                 Vector3d vectorToRunway = runwayStart - vesselState.CoM;
-                double verticalDistanceToRunway = Vector3d.Dot(vectorToRunway, vesselState.up);
+                double verticalDistanceToRunway = Vector3d.Dot(vectorToRunway, vesselState.up) - (vesselState.altitudeTrue - vesselState.altitudeBottom);
                 double horizontalDistanceToRunway = Math.Sqrt(vectorToRunway.sqrMagnitude - verticalDistanceToRunway * verticalDistanceToRunway);
                 distanceFrom = horizontalDistanceToRunway;
                 atmCeiling = CelestialBodyExtensions.RealMaxAtmosphereAltitude(mainBody);
@@ -276,9 +279,8 @@ namespace MuMech
                 if (Vector3d.Dot(runwayDir, vesselState.forward) < 0) runwayDir *= -1;
                 runwayHeading = 180 / Math.PI * Math.Atan2(Vector3d.Dot(runwayDir, vesselState.east), Vector3d.Dot(runwayDir, vesselState.north));
                 vessel.ctrlState.pitch = (float)MuUtils.Clamp(-vesselState.vesselPitch * 0.1, -0.5, 0);
-                vessel.ctrlState.yaw = (float)MuUtils.Clamp(MuUtils.ClampDegrees180(runwayHeading - vesselState.vesselHeading) * 0.1F, -0.1, 0.1);
-                if (vesselState.vesselRoll < -1) vessel.ctrlState.roll = 1;
-                if (vesselState.vesselRoll > 1) vessel.ctrlState.roll = -1;
+                vessel.ctrlState.yaw = (float)MuUtils.Clamp(MuUtils.ClampDegrees180(runwayHeading - vesselState.vesselHeading) * 0.01F * (25.0F / vessel.horizontalSrfSpeed), -0.1, 0.1);
+                vessel.ctrlState.roll = (float)MuUtils.Clamp(MuUtils.ClampDegrees180(-vesselState.vesselRoll) * 0.01F * (25.0F / vessel.horizontalSrfSpeed), -0.1, 0.1);
             }
         }
 
