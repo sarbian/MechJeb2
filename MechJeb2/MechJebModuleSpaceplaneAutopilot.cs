@@ -280,7 +280,7 @@ namespace MuMech
                 runwayHeading = 180 / Math.PI * Math.Atan2(Vector3d.Dot(runwayDir, vesselState.east), Vector3d.Dot(runwayDir, vesselState.north));
                 vessel.ctrlState.pitch = (float)MuUtils.Clamp(-vesselState.vesselPitch * 0.1, -0.5, 0);
                 vessel.ctrlState.yaw = (float)MuUtils.Clamp(MuUtils.ClampDegrees180(runwayHeading - vesselState.vesselHeading) * 0.01F * (25.0F / vessel.horizontalSrfSpeed), -0.1, 0.1);
-                vessel.ctrlState.roll = (float)MuUtils.Clamp(MuUtils.ClampDegrees180(-vesselState.vesselRoll) * 0.01F * (25.0F / vessel.horizontalSrfSpeed), -0.1, 0.1);
+                vessel.ctrlState.roll = (float)MuUtils.Clamp(MuUtils.ClampDegrees180(vesselState.vesselRoll) * 0.01F * (25.0F / vessel.horizontalSrfSpeed), -0.1, 0.1);
             }
         }
 
