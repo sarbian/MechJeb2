@@ -771,7 +771,7 @@ namespace MuMech
                 target_surface_speed -= horizontal_error * 0.2;
 
 
-                Vector3d target_acceleration = final_descent_pid.Compute(target_surface_speed - vesselState.velocityVesselSurface) - vesselState.gravityForce + (target_surface_speed - final_descent_last_speed_target) / vesselState.deltaT;
+                Vector3d target_acceleration = final_descent_pid.Compute(target_surface_speed - vesselState.velocityVesselSurface, Vector3d.zero) - vesselState.gravityForce + (target_surface_speed - final_descent_last_speed_target) / vesselState.deltaT;
                 final_descent_last_speed_target = target_surface_speed;
                 if (Vector3d.Dot(target_acceleration, vesselState.up) < 0)
                 {
