@@ -335,19 +335,37 @@ namespace MuMech
         {
             if (moduleRegistry == null)
             {
-                moduleRegistry = (from ass in AppDomain.CurrentDomain.GetAssemblies() from t in ass.GetTypes() where t.IsSubclassOf(typeof(ComputerModule)) select t).ToList();
+                moduleRegistry = new List<Type>();
+                foreach (var ass in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    try
+                    {
+                        moduleRegistry.AddRange((from t in ass.GetTypes() where t.IsSubclassOf(typeof(ComputerModule)) select t).ToList());
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError("MechJeb moduleRegistry creation threw an exception in LoadComputerModules loading " + ass.FullName + ": " + e);
+                    }
+                }
             }
 
             System.Version v = Assembly.GetAssembly(typeof(MechJebCore)).GetName().Version;
             version = v.Major.ToString() + "." + v.Minor.ToString() + "." + v.Build.ToString();
 
-            foreach (Type t in moduleRegistry)
+            try
             {
-                if ((t != typeof(ComputerModule)) && (t != typeof(DisplayModule) && (t != typeof(MechJebModuleCustomInfoWindow)))
-                    && !blacklist.Contains(t.Name) && (GetComputerModule(t.Name) == null))
+                foreach (Type t in moduleRegistry)
                 {
-                    AddComputerModule((ComputerModule)(t.GetConstructor(new Type[] { typeof(MechJebCore) }).Invoke(new object[] { this })));
+                    if ((t != typeof(ComputerModule)) && (t != typeof(DisplayModule) && (t != typeof(MechJebModuleCustomInfoWindow)))
+                        && !blacklist.Contains(t.Name) && (GetComputerModule(t.Name) == null))
+                    {
+                        AddComputerModule((ComputerModule)(t.GetConstructor(new Type[] { typeof(MechJebCore) }).Invoke(new object[] { this })));
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("MechJeb moduleRegistry loading threw an exception in LoadComputerModules: " + e);
             }
 
             attitude = GetComputerModule<MechJebModuleAttitudeController>();
