@@ -148,8 +148,10 @@ namespace MuMech
             //However, if you press ctrl-Z, a new PartModule object gets created, on which the
             //game DOES call OnLoad, and then OnStart. So before calling OnLoad from OnStart,
             //check whether we have loaded any computer modules.
-            if (state == StartState.Editor && computerModules.Count == 0)
+            //if (state == StartState.Editor && computerModules.Count == 0)
+            if (computerModules.Count == 0)
             {
+                Debug.Log("MechJeb2 OnStart Loading Config");
                 OnLoad(null);
             }
 
