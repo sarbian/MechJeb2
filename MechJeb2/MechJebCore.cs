@@ -350,7 +350,7 @@ namespace MuMech
             }
 
             System.Version v = Assembly.GetAssembly(typeof(MechJebCore)).GetName().Version;
-            version = v.Major.ToString() + "." + v.Minor.ToString() + "." + v.Build.ToString();
+            version = v.Major.ToString() + "." + v.Minor.ToString() + "." + v.Build.ToString() + "." + v.Revision .ToString();
 
             try
             {
