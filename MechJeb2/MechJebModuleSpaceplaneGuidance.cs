@@ -41,7 +41,7 @@ namespace MuMech
 
             if (GUILayout.Button("Autoland")) autopilot.Autoland(this);
             if (autopilot.enabled && autopilot.mode == MechJebModuleSpaceplaneAutopilot.Mode.AUTOLAND
-                && GUILayout.Button("Abort")) autopilot.AutopilotOff();
+                && GUILayout.Button("Abort")) autopilot.Abort();
 
             GuiUtils.SimpleTextBox("Autoland glideslope:", autopilot.glideslope, "º");
 
@@ -56,8 +56,13 @@ namespace MuMech
             GUILayout.Label("m");
             GUILayout.EndHorizontal();
 
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Takeoff pitch:");
+            autopilot.takeoffPitch = float.Parse(GUILayout.TextField(autopilot.takeoffPitch.ToString(), GUILayout.Width(40)));
+            GUILayout.EndHorizontal();
+
             if (autopilot.enabled && autopilot.mode == MechJebModuleSpaceplaneAutopilot.Mode.HOLD
-                && GUILayout.Button("Abort")) autopilot.AutopilotOff();
+                && GUILayout.Button("Abort")) autopilot.Abort();
 
             GUILayout.EndVertical();
 

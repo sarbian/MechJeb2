@@ -10,24 +10,39 @@ namespace MuMech
     {
         public void Autoland(object controller)
         {
-            users.Add(controller);
-            core.attitude.users.Add(this);
             mode = Mode.AUTOLAND;
+            users.Add(controller);
             loweredGear = false;
+            brakes = false;
         }
 
         public void HoldHeadingAndAltitude(object controller)
         {
-            users.Add(controller);
-            core.attitude.users.Add(this);
             mode = Mode.HOLD;
+            users.Add(controller);
+            loweredGear = false;
+            brakes = false;
+        }
+
+        bool autopilotOn = false;
+        public void AutopilotOn()
+        {
+            core.attitude.users.Add(this);
+            autopilotOn = true;
         }
 
         public void AutopilotOff()
         {
-            mode = Mode.OFF;
+            core.attitude.users.Clear();
+            autopilotOn = false;
+        }
+
+        public void Abort()
+        {
             users.Clear();
+            AutopilotOff();
             core.attitude.attitudeDeactivate();
+            mode = Mode.OFF;
         }
 
         public static Runway[] runways = 
@@ -35,14 +50,14 @@ namespace MuMech
             new Runway //The runway at KSC
             { 
                 name = "KSC runway",
-                start = new Runway.Endpoint { latitude = -0.040633, longitude = -74.6908, altitude = 67 }, 
-                end = new Runway.Endpoint { latitude = -0.041774, longitude = -74.5241702, altitude = 67 } 
+                start = new Runway.Endpoint { latitude = -0.040633, longitude = -74.6908, altitude = 65 }, 
+                end = new Runway.Endpoint { latitude = -0.041774, longitude = -74.5241702, altitude = 65 } 
             },
             new Runway //The runway on the island off the KSC coast.
             { 
                 name = "Island runway",
-                start = new Runway.Endpoint { latitude = -1.547474, longitude = -71.9611702, altitude = 48 },
-                end = new Runway.Endpoint { latitude = -1.530174, longitude = -71.8791702, altitude = 48 }
+                start = new Runway.Endpoint { latitude = -1.547474, longitude = -71.9611702, altitude = 39 },
+                end = new Runway.Endpoint { latitude = -1.530174, longitude = -71.8791702, altitude = 39 }
             }
         };
 
@@ -59,6 +74,7 @@ namespace MuMech
         public EditableDouble targetHeading = 90;
 
         bool loweredGear = false;
+        bool brakes = false;
 
         public override void OnModuleDisabled()
         {
@@ -79,19 +95,101 @@ namespace MuMech
             }
         }
 
+        public float takeoffPitch = 10F;
         public void DriveHeadingAndAltitudeHold(FlightCtrlState s)
         {
-            double targetClimbRate = (targetAltitude - vesselState.altitudeASL) / 30.0;
-            double targetFlightPathAngle = 180 / Math.PI * Math.Asin(Mathf.Clamp((float)(targetClimbRate / vesselState.speedSurface), (float)Math.Sin(-Math.PI / 9), (float)Math.Sin(Math.PI / 9)));
+            if (!part.vessel.Landed)
+            {
+                if (!autopilotOn)
+                    AutopilotOn();
+                if (!loweredGear)
+                {
+                    if ((part.vessel.altitude - part.vessel.terrainAltitude) < 100.0)
+                    {
+                        vessel.ActionGroups.SetGroup(KSPActionGroup.Gear, true);
+                        loweredGear = true;
+                    }
+                }
+                else
+                {
+                    if ((part.vessel.altitude - part.vessel.terrainAltitude) > 100.0)
+                    {
+                        vessel.ActionGroups.SetGroup(KSPActionGroup.Gear, false);
+                        loweredGear = false;
+                    }
+                }
+
+                //takeoff or set for flight
+                if (landed)
+                {
+                    //vessel.ActionGroups.SetGroup(KSPActionGroup.Gear, false);
+                    loweredGear = true;
+                    landed = false;
+                }
+            }
+            else
+            {
+                if (!landed)
+                {
+                    vessel.ctrlState.mainThrottle = 0;
+                    AutopilotOff();
+                    landTime = vesselState.time;
+                    landed = true;
+                    loweredGear = true;
+                }
+                //apply breaks a little after touchdown
+                if (!brakes && vesselState.time > landTime + 1.0)
+                {
+                    vessel.ActionGroups.SetGroup(KSPActionGroup.Brakes, true);
+                    brakes = true;
+                }
+                //if engines are started, disengage brakes and prepare for takeoff
+                if (brakes && vessel.ctrlState.mainThrottle > 0.01)
+                {
+                    vessel.ActionGroups.SetGroup(KSPActionGroup.Brakes, false);
+                    brakes = false;
+                }
+                //pitch up for takeoff
+                if (!brakes && vesselState.time > landTime + 1.0)
+                {
+                    vessel.ctrlState.pitch = (float)(takeoffPitch - vesselState.vesselPitch) / 10;
+                }
+
+                float targetHead = (float)targetHeading;
+                if (Mathf.Abs((float)(targetHead - vesselState.vesselHeading)) > 5) targetHead = (float)vesselState.vesselHeading;
+                vessel.ctrlState.yaw = (float)MuUtils.Clamp(MuUtils.ClampDegrees180(targetHead - vesselState.vesselHeading) * 0.01F * (25.0F / vessel.horizontalSrfSpeed), -0.1, 0.1);
+            }
+
+            double targetClimbRate = (targetAltitude - vesselState.altitudeASL) / (30.0 * Math.Pow((CelestialBodyExtensions.RealMaxAtmosphereAltitude(mainBody) / (CelestialBodyExtensions.RealMaxAtmosphereAltitude(mainBody) - vesselState.altitudeASL)), 5));
+            double targetFlightPathAngle = 180 / Math.PI * Math.Asin(Mathf.Clamp((float)(targetClimbRate / vesselState.speedSurface), (float)Math.Sin(-Math.PI / 7), (float)Math.Sin(Math.PI / 7)));
+
+            double heading = targetHeading;
+            //if (loweredGear == true) heading = vesselState.vesselHeading;
+
             AimVelocityVector(targetFlightPathAngle, targetHeading);
         }
 
+        bool landed = false;
+        double landTime = 0;
+        public double aimAltitude = 0;
+        public double distanceFrom = 0;
+        public double runwayHeading = 0;
+        public enum HeadingState { RIGHT, LEFT, OFF };
+        public HeadingState autolandHeadingState = HeadingState.OFF;
+        public double atmCeiling = 0;
+        public Vector3d runwayStart = new Vector3d();
         public void DriveAutoland(FlightCtrlState s)
         {
             if (!part.vessel.Landed)
             {
-                Vector3d runwayStart = RunwayStart();
+                if (landed) landed = false;
 
+                runwayStart = RunwayStart();
+
+                if (!autopilotOn)
+                    AutopilotOn();
+
+                //prepare for landing
                 if (!loweredGear && (vesselState.CoM - runwayStart).magnitude < 1000.0)
                 {
                     vessel.ActionGroups.SetGroup(KSPActionGroup.Gear, true);
@@ -100,53 +198,129 @@ namespace MuMech
 
                 Vector3d vectorToWaypoint = ILSAimDirection();
                 double headingToWaypoint = vesselState.HeadingFromDirection(vectorToWaypoint);
+                if (Math.Abs(MuUtils.ClampDegrees180(headingToWaypoint - vesselState.vesselHeading)) > 170)
+                {
+                    //make sure the heading doesn't keep switching from side to side
+                    switch (autolandHeadingState)
+                    {
+                        case HeadingState.RIGHT:
+                            headingToWaypoint = MuUtils.ClampDegrees360(vesselState.vesselHeading + 90);
+                            break;
+                        case HeadingState.LEFT:
+                            headingToWaypoint = MuUtils.ClampDegrees360(vesselState.vesselHeading - 90);
+                            break;
+                        case HeadingState.OFF:
+                            if (headingToWaypoint - vesselState.vesselHeading > 0)
+                                autolandHeadingState = HeadingState.RIGHT;
+                            else
+                                autolandHeadingState = HeadingState.LEFT;
+                            break;
+                    }
+                }
+                else
+                    autolandHeadingState = HeadingState.OFF;
+
+                //stop any rolling and aim down runway before touching down
+                if ((vesselState.CoM - runwayStart).magnitude < 200.0)
+                {
+                    Vector3d runwayDir = runway.End(vesselState.CoM) - runway.Start(vesselState.CoM);
+                    runwayHeading = 180 / Math.PI * Math.Atan2(Vector3d.Dot(runwayDir, vesselState.east), Vector3d.Dot(runwayDir, vesselState.north));
+                    headingToWaypoint = runwayHeading;
+                }
 
                 Vector3d vectorToRunway = runwayStart - vesselState.CoM;
-                double verticalDistanceToRunway = Vector3d.Dot(vectorToRunway, vesselState.up);
+                double verticalDistanceToRunway = Vector3d.Dot(vectorToRunway, vesselState.up) - (vesselState.altitudeTrue - vesselState.altitudeBottom);
                 double horizontalDistanceToRunway = Math.Sqrt(vectorToRunway.sqrMagnitude - verticalDistanceToRunway * verticalDistanceToRunway);
-                double flightPathAngleToRunway = 180 / Math.PI * Math.Atan2(verticalDistanceToRunway, horizontalDistanceToRunway);
-                double desiredFPA = Mathf.Clamp((float)(flightPathAngleToRunway + 3 * (flightPathAngleToRunway + glideslope)), -20.0F, 0.0F);
+                distanceFrom = horizontalDistanceToRunway;
+                atmCeiling = CelestialBodyExtensions.RealMaxAtmosphereAltitude(mainBody);
+                if (horizontalDistanceToRunway > atmCeiling * 0.2)
+                {
+                    aimAltitude = runway.start.altitude + atmCeiling * 0.01;
+                    double horizontalDifference = atmCeiling * 0.199;
+                    if (horizontalDistanceToRunway > atmCeiling * 0.5) { aimAltitude = runway.start.altitude + atmCeiling * 0.1; horizontalDifference = atmCeiling * 0.499; }
+                    if (horizontalDistanceToRunway > atmCeiling * 4)
+                    {
+                        //fly at a steady altitude unless below 10% altitude (7km on kerbin)
+                        aimAltitude = vesselState.altitudeTrue;
+                        if (aimAltitude < atmCeiling * 0.1) aimAltitude = runway.start.altitude + atmCeiling * 0.1;
+                        horizontalDifference = atmCeiling * 3.99;
+                    }
+                    double setupFPA = MuUtils.Clamp(180 / Math.PI * Math.Atan2(aimAltitude - vessel.altitude, horizontalDistanceToRunway - horizontalDifference), -20, 10);
 
-                AimVelocityVector(desiredFPA, headingToWaypoint);
+                    AimVelocityVector(setupFPA, headingToWaypoint);
+                }
+                else
+                {
+                    double flightPathAngleToRunway = 180 / Math.PI * Math.Atan2(verticalDistanceToRunway, horizontalDistanceToRunway);
+                    double desiredFPA = Mathf.Clamp((float)(flightPathAngleToRunway + 3 * (flightPathAngleToRunway + glideslope)), -20.0F, 5.0F);
+
+                    aimAltitude = verticalDistanceToRunway;
+                    AimVelocityVector(desiredFPA, headingToWaypoint);
+                }
             }
             else
             {
+                if (!landed)
+                {
+                    vessel.ctrlState.mainThrottle = 0;
+                    landTime = vesselState.time;
+                    AutopilotOff();
+                    landed = true;
+                }
+                //apply breaks a little after touchdown
+                if (!brakes && vesselState.time > landTime + 1.0)
+                {
+                    vessel.ActionGroups.SetGroup(KSPActionGroup.Brakes, true);
+                    vessel.ctrlState.pitch = -1;
+                    brakes = true;
+                }
                 //keep the plane aligned with the runway:
                 Vector3d runwayDir = runway.End(vesselState.CoM) - runway.Start(vesselState.CoM);
                 if (Vector3d.Dot(runwayDir, vesselState.forward) < 0) runwayDir *= -1;
-                double runwayHeading = 180 / Math.PI * Math.Atan2(Vector3d.Dot(runwayDir, vesselState.east), Vector3d.Dot(runwayDir, vesselState.north));
-                core.attitude.attitudeTo(runwayHeading, 0, 0, this);
+                runwayHeading = 180 / Math.PI * Math.Atan2(Vector3d.Dot(runwayDir, vesselState.east), Vector3d.Dot(runwayDir, vesselState.north));
+                vessel.ctrlState.pitch = (float)MuUtils.Clamp(-vesselState.vesselPitch * 0.1, -0.5, 0);
+                vessel.ctrlState.yaw = (float)MuUtils.Clamp(MuUtils.ClampDegrees180(runwayHeading - vesselState.vesselHeading) * 0.01F * (25.0F / vessel.horizontalSrfSpeed), -0.1, 0.1);
+                vessel.ctrlState.roll = (float)MuUtils.Clamp(MuUtils.ClampDegrees180(vesselState.vesselRoll) * 0.01F * (25.0F / vessel.horizontalSrfSpeed), -0.1, 0.1);
             }
         }
 
         public double stableAoA = 0; //we average AoA over time to get an estimate of what pitch will produce what FPA
         public double pitchCorrection = 0; //we average (commanded pitch - actual pitch) over time in order to fix this offset in our commands
-        public float maxYaw = 10.0F;
-        public float maxRoll = 10.0F;
+        public float maxYaw = 15.0F;
+        public float maxRoll = 30.0F;
+        public float maxAoA = 30.0F;
+        public float minAoA = -10.0F;
         public float maxPitchCorrection = 5.0F;
         public double AoAtimeConstant = 2.0;
         public double pitchCorrectionTimeConstant = 15.0;
+        public double velocityPitch = 0;
+        public double percentAltitude = 0;
 
         void AimVelocityVector(double desiredFpa, double desiredHeading)
         {
-            //horizontal control
-            double velocityHeading = 180 / Math.PI * Math.Atan2(Vector3d.Dot(vesselState.velocityVesselSurface, vesselState.east),
-                                                                Vector3d.Dot(vesselState.velocityVesselSurface, vesselState.north));
-            double headingTurn = Mathf.Clamp((float)MuUtils.ClampDegrees180(desiredHeading - velocityHeading), -maxYaw, maxYaw);
-            double noseHeading = velocityHeading + headingTurn;
-            double noseRoll = (maxRoll / maxYaw) * headingTurn;
+            if (autopilotOn)
+            {
+                //horizontal control
+                double velocityHeading = 180 / Math.PI * Math.Atan2(Vector3d.Dot(vesselState.velocityVesselSurface, vesselState.east),
+                                                                    Vector3d.Dot(vesselState.velocityVesselSurface, vesselState.north));
+                double headingTurn = Mathf.Clamp((float)MuUtils.ClampDegrees180(desiredHeading - velocityHeading), -maxYaw, maxYaw);
+                double noseHeading = velocityHeading + headingTurn;
+                double noseRoll = (maxRoll / maxYaw) * headingTurn;
 
-            //vertical control
-            double nosePitch = desiredFpa + stableAoA + pitchCorrection;
+                //vertical control
+                percentAltitude = (vesselState.altitudeTrue / CelestialBodyExtensions.RealMaxAtmosphereAltitude(mainBody));
+                velocityPitch = 180 / Math.PI * Math.Atan2(vesselState.speedVertical, vesselState.speedSurface);
+                double nosePitch = MuUtils.Clamp(desiredFpa + stableAoA + pitchCorrection, velocityPitch + minAoA * (1 - percentAltitude), velocityPitch + maxAoA * (1 - percentAltitude));
 
-            core.attitude.attitudeTo(noseHeading, nosePitch, noseRoll, this);
+                core.attitude.attitudeTo(noseHeading, nosePitch, noseRoll, this);
 
-            double flightPathAngle = 180 / Math.PI * Math.Atan2(vesselState.speedVertical, vesselState.speedSurfaceHorizontal);
-            double AoA = vesselState.vesselPitch - flightPathAngle;
-            stableAoA = (AoAtimeConstant * stableAoA + vesselState.deltaT * AoA) / (AoAtimeConstant + vesselState.deltaT); //a sort of integral error
+                double flightPathAngle = 180 / Math.PI * Math.Atan2(vesselState.speedVertical, vesselState.speedSurfaceHorizontal);
+                double AoA = vesselState.vesselPitch - flightPathAngle;
+                stableAoA = (AoAtimeConstant * stableAoA + vesselState.deltaT * AoA) / (AoAtimeConstant + vesselState.deltaT); //a sort of integral error
 
-            pitchCorrection = (pitchCorrectionTimeConstant * pitchCorrection + vesselState.deltaT * (nosePitch - vesselState.vesselPitch)) / (pitchCorrectionTimeConstant + vesselState.deltaT);
-            pitchCorrection = Mathf.Clamp((float)pitchCorrection, -maxPitchCorrection, maxPitchCorrection);
+                pitchCorrection = (pitchCorrectionTimeConstant * pitchCorrection + vesselState.deltaT * (nosePitch - vesselState.vesselPitch)) / (pitchCorrectionTimeConstant + vesselState.deltaT);
+                pitchCorrection = Mathf.Clamp((float)pitchCorrection, -maxPitchCorrection, maxPitchCorrection);
+            }
         }
 
         Vector3d RunwayStart()
