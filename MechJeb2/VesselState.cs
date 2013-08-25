@@ -327,7 +327,8 @@ namespace MuMech
                     if (pm is ModuleReactionWheel)
                     {
                         ModuleReactionWheel rw = (ModuleReactionWheel)pm;
-                        if (rw.wheelState == ModuleReactionWheel.WheelState.Active)
+                        // It seems a RW with no electricity is still "Active" so we need to test for something else...
+                        if (rw.wheelState == ModuleReactionWheel.WheelState.Active && !rw.stateString.Contains("Not enough"))
                             torqueAvailable += new Vector3d(rw.PitchTorque, rw.RollTorque, rw.YawTorque);
                     }
 
