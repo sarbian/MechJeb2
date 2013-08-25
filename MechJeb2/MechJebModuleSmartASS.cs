@@ -295,7 +295,7 @@ namespace MuMech
                 direction = Vector3d.zero;
             }
 
-            if (target != Target.OFF)
+            if (target != Target.OFF && target != Target.AUTO)
                 if (direction != Vector3d.zero)
                     core.attitude.attitudeTo(direction, reference, this);
                 else
