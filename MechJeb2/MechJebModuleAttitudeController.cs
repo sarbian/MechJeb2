@@ -26,8 +26,6 @@ namespace MuMech
         public Vector3d pidAction;  //info
         protected float timeCount = 0;
 
-        [ToggleInfoItem("Use SAS if available", InfoItem.Category.Vessel), Persistent(pass = (int)Pass.Local)]
-        public bool SAS_auto = false;
         public bool RCS_auto = false;
         public bool attitudeRCScontrol = true; 
 
@@ -48,11 +46,6 @@ namespace MuMech
         public override void OnModuleEnabled()
         {
             timeCount = 50;
-        }
-
-        public override void OnModuleDisabled()
-        {
-            part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, SAS_auto);
         }
 
         protected void onFlightStartAtLaunchPad()
@@ -338,7 +331,6 @@ namespace MuMech
             if (userCommandingPitchYaw || userCommandingRoll)
             {
                 pid.Reset();
-                part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, false);
                 if (attitudeKILLROT)
                 {
                     attitudeTo(Quaternion.LookRotation(vessel.GetTransform().up, -vessel.GetTransform().forward), AttitudeReference.INERTIAL, null);
@@ -388,22 +380,11 @@ namespace MuMech
                             part.vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, false);
                         }
                     }
-                    if (!userCommandingPitchYaw && !userCommandingRoll)
-                    {
-                        if (SAS_auto)
-                        {
-                            part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, true);
-                        }
-                    }
                 }
             }
             else if ((absErr.x > 1.0) || (absErr.y > 1.0) || (absErr.z > 1.0))
             {
                 timeCount = 0;
-                if (SAS_auto)
-                {
-                    part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, false);
-                }
                 if (RCS_auto && ((absErr.x > 3.0) || (absErr.y > 3.0) || (absErr.z > 3.0)))
                 {
                     core.rcs.conserveFuel = false;
