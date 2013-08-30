@@ -163,6 +163,15 @@ namespace MuMech
             if (autopilot != null && autopilot.enabled)
             {
                 GUILayout.Label("Autopilot status: " + autopilot.status);
+
+                // Show to the user if the special case for cirulirising earlier applied to get some feedback
+                // TODO : remove after I get feedback and put back autopilot.mode private
+                double circularSpeed = OrbitalManeuverCalculator.CircularOrbitSpeed(mainBody, orbit.ApR);
+                double apoapsisSpeed = orbit.SwappedOrbitalVelocityAtUT(orbit.NextApoapsisTime(vesselState.time)).magnitude;
+                double circularizeBurnTime = (circularSpeed - apoapsisSpeed) / vesselState.limitedMaxThrustAccel;
+                if (autopilot.mode == MechJebModuleAscentAutopilot.AscentMode.COAST_TO_APOAPSIS && vesselState.limitedMaxThrustAccel > 0 && orbit.timeToAp < circularizeBurnTime / 1.8)
+                    GUILayout.Label("Early circularization");
+
             }
 
             MechJebModuleAscentPathEditor editor = core.GetComputerModule<MechJebModuleAscentPathEditor>();

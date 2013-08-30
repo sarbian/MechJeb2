@@ -48,6 +48,11 @@ namespace MuMech
             timeCount = 50;
         }
 
+        public override void OnModuleDisabled()
+        {
+            part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, false);
+        }
+
         protected void onFlightStartAtLaunchPad()
         //protected void onFlightStart()
         {
@@ -331,6 +336,7 @@ namespace MuMech
             if (userCommandingPitchYaw || userCommandingRoll)
             {
                 pid.Reset();
+                part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, false);
                 if (attitudeKILLROT)
                 {
                     attitudeTo(Quaternion.LookRotation(vessel.GetTransform().up, -vessel.GetTransform().forward), AttitudeReference.INERTIAL, null);
@@ -385,6 +391,7 @@ namespace MuMech
             else if ((absErr.x > 1.0) || (absErr.y > 1.0) || (absErr.z > 1.0))
             {
                 timeCount = 0;
+                part.vessel.ActionGroups.SetGroup(KSPActionGroup.SAS, false);
                 if (RCS_auto && ((absErr.x > 3.0) || (absErr.y > 3.0) || (absErr.z > 3.0)))
                 {
                     core.rcs.conserveFuel = false;

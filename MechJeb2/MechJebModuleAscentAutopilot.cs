@@ -47,8 +47,8 @@ namespace MuMech
         public EditableDouble launchPhaseAngle = 0;
 
         //internal state:
-        enum AscentMode { VERTICAL_ASCENT, GRAVITY_TURN, COAST_TO_APOAPSIS, CIRCULARIZE };
-        AscentMode mode;
+        public enum AscentMode { VERTICAL_ASCENT, GRAVITY_TURN, COAST_TO_APOAPSIS, CIRCULARIZE };
+        public AscentMode mode;
         bool placedCircularizeNode = false;
 
         public override void OnModuleEnabled()
@@ -232,15 +232,18 @@ namespace MuMech
         {
             core.thrust.targetThrottle = 0;
 
-            double circularSpeed = OrbitalManeuverCalculator.CircularOrbitSpeed(mainBody, orbit.ApR);
-            double apoapsisSpeed = orbit.SwappedOrbitalVelocityAtUT(orbit.NextApoapsisTime(vesselState.time)).magnitude;
-            double circularizeBurnTime = (circularSpeed - apoapsisSpeed) / vesselState.limitedMaxThrustAccel;
+            //double circularSpeed = OrbitalManeuverCalculator.CircularOrbitSpeed(mainBody, orbit.ApR);
+            //double apoapsisSpeed = orbit.SwappedOrbitalVelocityAtUT(orbit.NextApoapsisTime(vesselState.time)).magnitude;
+            //double circularizeBurnTime = (circularSpeed - apoapsisSpeed) / vesselState.limitedMaxThrustAccel;
 
             //Once we get above the atmosphere, plan and execute the circularization maneuver.
             //For orbits near the edge of the atmosphere, we can't wait until we break the atmosphere
             //to start the burn, so we also compare the timeToAp with the expected circularization burn time.
-            if ((vesselState.altitudeASL > mainBody.RealMaxAtmosphereAltitude())
-                || (vesselState.limitedMaxThrustAccel > 0 && orbit.timeToAp < circularizeBurnTime / 1.8))
+            //if ((vesselState.altitudeASL > mainBody.RealMaxAtmosphereAltitude())
+            //    || (vesselState.limitedMaxThrustAccel > 0 && orbit.timeToAp < circularizeBurnTime / 1.8))
+
+            // Sarbian : removed the special case for now. Some ship where truning too soon in atmo
+            if (vesselState.altitudeASL > mainBody.RealMaxAtmosphereAltitude())
             {
                 mode = AscentMode.CIRCULARIZE;
                 core.warp.MinimumWarp();
@@ -328,14 +331,14 @@ namespace MuMech
         public double VerticalAscentEnd()
         {
             var vessel = FlightGlobals.ActiveVessel;
-            return (vessel.mainBody.atmosphere ? (turnStartAltitude > 0 ? turnStartAltitude : vessel.mainBody.RealMaxAtmosphereAltitude() / 10) : vessel.terrainAltitude + 20);
+            return (vessel.mainBody.atmosphere ? (turnStartAltitude >= 0 ? turnStartAltitude : vessel.mainBody.RealMaxAtmosphereAltitude() / 10) : vessel.terrainAltitude + 20);
         }
 
         public double FlightPathAngle(double altitude)
         {
             var vessel = FlightGlobals.ActiveVessel;
             var targetAlt = vessel.GetMasterMechJeb().GetComputerModule<MechJebModuleAscentAutopilot>().desiredOrbitAltitude;
-            var turnEnd = (turnEndAltitude > 0 ? turnEndAltitude : Math.Max(Math.Min(30000, targetAlt * 0.85), vessel.mainBody.RealMaxAtmosphereAltitude()));
+            var turnEnd = (turnEndAltitude >= 0 ? turnEndAltitude : Math.Max(Math.Min(30000, targetAlt * 0.85), vessel.mainBody.RealMaxAtmosphereAltitude()));
 
             if (altitude < VerticalAscentEnd()) return 90.0;
 
