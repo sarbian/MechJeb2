@@ -320,25 +320,46 @@ namespace MuMech
     public class DefaultAscentPath : IAscentPath
     {
         [Persistent(pass = (int)(Pass.Type | Pass.Global))]
-        public EditableDoubleMult turnStartAltitude = new EditableDoubleMult(-5000, 1000);
+        public EditableDoubleMult turnStartAltitude = new EditableDoubleMult(5000, 1000);
         [Persistent(pass = (int)(Pass.Type | Pass.Global))]
-        public EditableDoubleMult turnEndAltitude = new EditableDoubleMult(-70000, 1000);
+        public EditableDoubleMult turnEndAltitude = new EditableDoubleMult(70000, 1000);
         [Persistent(pass = (int)(Pass.Type | Pass.Global))]
         public EditableDouble turnEndAngle = 0;
         [Persistent(pass = (int)(Pass.Type | Pass.Global))]
         public EditableDoubleMult turnShapeExponent = new EditableDoubleMult(0.4, 0.01);
+        [Persistent(pass = (int)(Pass.Type | Pass.Global))]
+        public bool autoPath = true;
+
+        public double autoTurnStartAltitude
+        {
+            get
+            {
+                var vessel = FlightGlobals.ActiveVessel;
+                return (vessel.mainBody.atmosphere ? vessel.mainBody.RealMaxAtmosphereAltitude() / 10 : vessel.terrainAltitude + 20);
+            }
+        }
+
+        public double autoTurnEndAltitude
+        {
+            get
+            {
+                var vessel = FlightGlobals.ActiveVessel;
+                var targetAlt = vessel.GetMasterMechJeb().GetComputerModule<MechJebModuleAscentAutopilot>().desiredOrbitAltitude;
+                return Math.Max(Math.Min(30000, targetAlt * 0.85), vessel.mainBody.RealMaxAtmosphereAltitude());
+            }
+        }
 
         public double VerticalAscentEnd()
         {
-            var vessel = FlightGlobals.ActiveVessel;
-            return (vessel.mainBody.atmosphere ? (turnStartAltitude >= 0 ? turnStartAltitude : vessel.mainBody.RealMaxAtmosphereAltitude() / 10) : vessel.terrainAltitude + 20);
+            if (autoPath)
+                return autoTurnStartAltitude;
+            else
+                return turnStartAltitude;
         }
 
         public double FlightPathAngle(double altitude)
         {
-            var vessel = FlightGlobals.ActiveVessel;
-            var targetAlt = vessel.GetMasterMechJeb().GetComputerModule<MechJebModuleAscentAutopilot>().desiredOrbitAltitude;
-            var turnEnd = (turnEndAltitude >= 0 ? turnEndAltitude : Math.Max(Math.Min(30000, targetAlt * 0.85), vessel.mainBody.RealMaxAtmosphereAltitude()));
+            var turnEnd = (autoPath ? autoTurnEndAltitude : turnEndAltitude );
 
             if (altitude < VerticalAscentEnd()) return 90.0;
 
