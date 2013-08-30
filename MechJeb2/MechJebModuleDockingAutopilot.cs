@@ -10,7 +10,7 @@ namespace MuMech
     {
         public string status = "";
 
-        public double approachSpeedMult = 1; // Approach speed will be approachSpeedMult * available thrust/mass on each axis.
+        public double approachSpeedMult = 0.5; // Approach speed will be approachSpeedMult * available thrust/mass on each axis.
 
         public double Kp = 0.2, Ki = 0, Kd = 0.02;
 
@@ -74,10 +74,15 @@ namespace MuMech
 
             Vector3d zAxis = core.target.DockingAxis;
             double zSep = -Vector3d.Dot(separation, zAxis); //positive if we are in front of the target, negative if behind
+            
             Vector3d lateralSep = Vector3d.Exclude(zAxis, separation);
 
-            double zApproachSpeed = FixSpeed(vesselState.rcsThrustAvailable.GetMagnitude(-zAxis) * approachSpeedMult / vesselState.mass);
-            double latApproachSpeed = FixSpeed(vesselState.rcsThrustAvailable.GetMagnitude(-lateralSep) * approachSpeedMult / vesselState.mass);
+            double zApproachSpeed = FixSpeed(  Math.Sign(zSep) * Math.Sqrt( Math.Abs(zSep) * vesselState.rcsThrustAvailable.GetMagnitude(-zAxis) * approachSpeedMult / vesselState.mass ));
+            
+            double latApproachSpeed = FixSpeed( Math.Sqrt(lateralSep.magnitude * vesselState.rcsThrustAvailable.GetMagnitude(-lateralSep) * approachSpeedMult / vesselState.mass));
+
+            //print("zSep=" + zSep.ToString("F2") + " lSep=" + lateralSep.magnitude.ToString("F2") + " zSpd=" + zApproachSpeed.ToString("F2") +" lSpd=" + latApproachSpeed.ToString("F2") );
+
 
             if (zSep < 0)  //we're behind the target
             {
@@ -97,12 +102,12 @@ namespace MuMech
             else //we're in front of the target
             {
                 //move laterally toward the docking axis
-                lateralPID.max = latApproachSpeed * lateralSep.magnitude / 200;
+                lateralPID.max = latApproachSpeed;
                 lateralPID.min = -lateralPID.max;
                 Vector3d lateralVelocityNeeded = -lateralSep.normalized * lateralPID.Compute(lateralSep.magnitude);
-                if (lateralVelocityNeeded.magnitude > latApproachSpeed) lateralVelocityNeeded *= (latApproachSpeed / lateralVelocityNeeded.magnitude);
+                //if (lateralVelocityNeeded.magnitude > latApproachSpeed) lateralVelocityNeeded *= (latApproachSpeed / lateralVelocityNeeded.magnitude);
 
-                double zVelocityNeeded = 0.1 + Math.Min(zApproachSpeed, zApproachSpeed * zSep / 200);
+                double zVelocityNeeded = zApproachSpeed;
 
                 if (lateralSep.magnitude > 0.2 && lateralSep.magnitude * 10 > zSep)
                 {
@@ -136,7 +141,7 @@ namespace MuMech
                     }
                 }
 
-                Vector3d adjustment = lateralVelocityNeeded + zVelocityNeeded * zAxis;
+                Vector3d adjustment = lateralVelocityNeeded + zVelocityNeeded * zAxis.normalized;
                 double magnitude = adjustment.magnitude;
                 if (magnitude > 0) adjustment *= FixSpeed(magnitude) / magnitude;
                 core.rcs.SetTargetWorldVelocity(targetVel + adjustment);

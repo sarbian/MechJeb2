@@ -55,6 +55,10 @@ namespace MuMech
             worldVelocityDelta += TimeWarp.fixedDeltaTime * vesselState.gravityForce; //account for one frame's worth of gravity
             Vector3d velocityDelta = Quaternion.Inverse(vessel.GetTransform().rotation) * worldVelocityDelta;
 
+            // Sarbian : Disable RCS conservation to see if it help with docking
+            //conserveFuel = false;
+
+
             if (!conserveFuel || (velocityDelta.magnitude > conserveThreshold))
             {
                 if (!vessel.ActionGroups[KSPActionGroup.RCS])
@@ -68,6 +72,7 @@ namespace MuMech
                 {
                     if (vesselState.rcsThrustAvailable[dir] > 0)
                     {
+                        //double dV = Math.Sign(Vector3d.Dot(velocityDelta, Vector6.directions[dir])) * Vector3d.Project(velocityDelta, Vector6.directions[dir]).magnitude  / (vesselState.rcsThrustAvailable[dir] * TimeWarp.fixedDeltaTime / vesselState.mass);
                         double dV = Vector3d.Dot(velocityDelta, Vector6.directions[dir]) / (vesselState.rcsThrustAvailable[dir] * TimeWarp.fixedDeltaTime / vesselState.mass);
                         if (dV > 0)
                         {
