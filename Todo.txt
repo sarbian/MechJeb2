@@ -1,0 +1,55 @@
+(de)Activation auto du ASAS 
+
+
+
+
+http://forum.kerbalspaceprogram.com/showthread.php/47317-MechJeb-2-Patch-test-bed-release?p=615217&viewfull=1#post615217
+Issue 1, Ascent Guidance-> Ascent Path Editor
+Turn start altitude can't be set to 0km. It still starts at 7km on Kerbin, even if i put a 0 in this field.
+
+
+
+
+Ascent AP : Verifier qu'il reste pro grade tant qu on est pas sorti de l atmosphere
+I agree. Though out of atmos it turns prograde relative to the maneuver node, while in atmos it should just point prograde relative to its current position - as if you hit the prograde button in SmartASS. In fact I would have it do precisely that.
+Sachant que 
+Sarbian:The only adjustment needed is for Mechjeb to turn on SAS after MECO and leave it on until it plots/orients for the circularization burn. Don't change when it plots/ orients for that circ burn.
+
+
+
+Docking : speed & distance
+
+
+If a custom window has an item "Time to impact", flying very close to the ground, bouncing on the ground, driving over the ground can cause the window contents to suddenly disappear entirely and only reappear when you are no longer landed. The blanked-out-window results in significant extra framerate losses while it is blanked out.
+ArgumentException: OrbitExtensions.NextTimeOfRadius: given radius of 600304.287238744 is never achieved: o.PeR = 326.617774150285 and o.ApR = 600301.697890357
+  at MuMech.OrbitExtensions.NextTimeOfRadius (.Orbit o, Double UT, Double radius) [0x00000] in <filename unknown>:0 
+  at MuMech.MechJebModuleInfoItems.SuicideBurnCountdown () [0x00000] in <filename unknown>:0 
+  at (wrapper managed-to-native) System.Reflection.MonoMethod:InternalInvoke (object,object[],System.Exception&)
+  at System.Reflection.MonoMethod.Invoke (System.Object obj, BindingFlags invokeAttr, System.Reflection.Binder binder, System.Object[] parameters, System.Globalization.CultureInfo culture) [0x00000] in <filename unknown>:0 
+Rethrow as TargetInvocationException: Exception has been thrown by the target of an invocation.
+  at System.Reflection.MonoMethod.Invoke (System.Object obj, BindingFlags invokeAttr, System.Reflection.Binder binder, System.Object[] parameters, System.Globalization.CultureInfo culture) [0x00000] in <filename unknown>:0 
+  at System.Reflection.MethodBase.Invoke (System.Object obj, System.Object[] parameters) [0x00000] in <filename unknown>:0 
+  at MuMech.ValueInfoItem.GetValue () [0x00000] in <filename unknown>:0 
+  at MuMech.ValueInfoItem.DrawItem () [0x00000] in <filename unknown>:0 
+  at MuMech.MechJebModuleCustomInfoWindow.WindowGUI (Int32 windowID) [0x00000] in <filename unknown>:0 
+  at UnityEngine.GUILayout+LayoutedWindow.DoWindow (Int32 windowID) [0x00000] in <filename unknown>:0 
+  at UnityEngine.GUI.CallWindowDelegate (UnityEngine.WindowFunction func, Int32 id, UnityEngine.GUISkin _skin, Int32 forceRect, Single width, Single height, UnityEngine.GUIStyle style) [0x00000] in <filename unknown>:0 
+
+  
+
+https://github.com/MuMech/MechJeb2/issues/162#issuecomment-22258677
+
+
+Ascent auto pilot : profil plus complexe
+http://forum.kerbalspaceprogram.com/showthread.php/47317-MechJeb-2-Patch-test-bed-release?p=616766&viewfull=1#post616766
+
+
+
+http://forum.kerbalspaceprogram.com/showthread.php/47317-MechJeb-2-Patch-test-bed-release?p=618033&viewfull=1#post618033
+1- I fly my rocket, everything is fine, then if I revert the flight, the same rocket will crash a few meters from the launchpad. I noticed that in theses cases, monopropellent is used even b4 launch once autopilot is engaged. I have to close and reload the whole game. Its like mechjeb still think its in space with the other rocket or something like that.
+2- I sent a vessel to Duna but when it left Kerbin SOI all went wrong, every maneuver I tried, it would just roll the ship as fast as it can. Reloading the ship from the space center fixed it. But the same thing happened when entering Duna SOI
+3- targeting system is fluctuant, sometime the blue target will start to drift even if im still in a burn and the rocket tries to follow it off-course. I think it should lock its target until the end of the maneuver, then proceed to next target, if there is.
+
+
+
+
