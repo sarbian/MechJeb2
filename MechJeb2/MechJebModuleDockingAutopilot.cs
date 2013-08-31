@@ -10,15 +10,16 @@ namespace MuMech
     {
         public string status = "";
 
-        public double approachSpeedMult = 0.5; // Approach speed will be approachSpeedMult * available thrust/mass on each axis.
+        public double approachSpeedMult = 0.2; // Approach speed will be approachSpeedMult * available thrust/mass on each axis.
 
-        public double Kp = 0.2, Ki = 0, Kd = 0.02;
+        public double Kp = 0.2, Ki = 0, Kd = 0.00;
 
         public PIDController lateralPID;
+        public PIDController zPID;
 
         [Persistent(pass = (int)(Pass.Type | Pass.Global))]
         [EditableInfoItem("Docking speed limit", InfoItem.Category.Thrust, rightLabel = "m/s")]
-        public EditableDouble speedLimit = 0;
+        public EditableDouble speedLimit = 0.5;
         [Persistent(pass = (int)Pass.Local)]
         public EditableDouble rol = new EditableDouble(0);
         [Persistent(pass = (int)Pass.Local)]
@@ -28,6 +29,7 @@ namespace MuMech
             : base(core)
         {
             lateralPID = new PIDController(Kp, Ki, Kd);
+            zPID = new PIDController(Kp, Ki, Kd);
         }
 
         public override void OnModuleEnabled()
@@ -36,6 +38,7 @@ namespace MuMech
             core.rcs.users.Add(this);
             core.attitude.users.Add(this);
             lateralPID = new PIDController(Kp, Ki, Kd);
+            zPID = new PIDController(Kp, Ki, Kd);
         }
 
         public override void OnModuleDisabled()
@@ -73,11 +76,11 @@ namespace MuMech
             Vector3d separation = core.target.RelativePosition;
 
             Vector3d zAxis = core.target.DockingAxis;
-            double zSep = -Vector3d.Dot(separation, zAxis); //positive if we are in front of the target, negative if behind
+            double zSep = - Vector3d.Dot(separation, zAxis); //positive if we are in front of the target, negative if behind
             
             Vector3d lateralSep = Vector3d.Exclude(zAxis, separation);
 
-            double zApproachSpeed = FixSpeed(  Math.Sign(zSep) * Math.Sqrt( Math.Abs(zSep) * vesselState.rcsThrustAvailable.GetMagnitude(-zAxis) * approachSpeedMult / vesselState.mass ));
+            double zApproachSpeed = FixSpeed( Math.Sqrt( Math.Abs(zSep) * vesselState.rcsThrustAvailable.GetMagnitude(-zAxis) * approachSpeedMult / vesselState.mass ));
             
             double latApproachSpeed = FixSpeed( Math.Sqrt(lateralSep.magnitude * vesselState.rcsThrustAvailable.GetMagnitude(-lateralSep) * approachSpeedMult / vesselState.mass));
 
@@ -104,9 +107,18 @@ namespace MuMech
                 //move laterally toward the docking axis
                 lateralPID.max = latApproachSpeed;
                 lateralPID.min = -lateralPID.max;
-                Vector3d lateralVelocityNeeded = -lateralSep.normalized * lateralPID.Compute(lateralSep.magnitude);
+                
+                //Vector3d lateralVelocityNeeded = -lateralSep.normalized * lateralPID.Compute(latApproachSpeed);
+                Vector3d lateralVelocityNeeded = -lateralSep.normalized * latApproachSpeed;
+                
                 //if (lateralVelocityNeeded.magnitude > latApproachSpeed) lateralVelocityNeeded *= (latApproachSpeed / lateralVelocityNeeded.magnitude);
 
+                //print("lateralVelocityNeeded=" + lateralVelocityNeeded.magnitude.ToString("F2"));
+
+                //double zVelocityNeeded = zApproachSpeed;
+                zPID.max = zApproachSpeed;
+                zPID.min = -zPID.max;
+                //double zVelocityNeeded = zPID.Compute(zApproachSpeed);
                 double zVelocityNeeded = zApproachSpeed;
 
                 if (lateralSep.magnitude > 0.2 && lateralSep.magnitude * 10 > zSep)
@@ -121,8 +133,12 @@ namespace MuMech
                     else
                     {
                         //we're not extremely close in z, so just stay at this z distance while we fix the lateral separation
-                        zVelocityNeeded = 0;
-                        status = "Holding still in Z and moving toward the docking axis at " + lateralVelocityNeeded.magnitude.ToString("F2") + " m/s.";
+                        //zVelocityNeeded = 0;
+                        //print("zVelocityNeeded=" + zVelocityNeeded.ToString("F2") + " lateralVelocityNeeded=" + lateralVelocityNeeded.magnitude.ToString("F2"));
+                        // we're not extremely close in z, move forward but slow engough so we are on docking axis before we are near the dock
+                        zVelocityNeeded = Math.Min(zVelocityNeeded, (zSep * lateralVelocityNeeded.magnitude) / lateralSep.magnitude);
+                        //print("zVelocityNeeded=" + zVelocityNeeded.ToString("F2"));
+                        status = "Moving toward the docking axis at " + lateralVelocityNeeded.magnitude.ToString("F2") + " m/s.";
                     }
                 }
                 else
