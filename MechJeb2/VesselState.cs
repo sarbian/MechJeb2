@@ -488,7 +488,8 @@ namespace MuMech
                 float Isp0 = e.atmosphereCurve.Evaluate(atmP0);
                 float Isp1 = e.atmosphereCurve.Evaluate(atmP1);
                 double Isp = Math.Min(Isp0, Isp1);
-                double udot = e.maxThrust / (Isp * 9.81 * e.mixtureDensity);
+                //double udot = e.maxThrust / (Isp * 9.81 * e.mixtureDensity);
+                double udot = e.maxThrust / (Isp * 9.82 * e.mixtureDensity); // Tavert Issue #163
                 foreach (var propellant in e.propellants)
                 {
                     double maxreq = udot * propellant.ratio;
