@@ -132,7 +132,7 @@ namespace MuMech
             if (windowStat != WindowStat.HIDDEN)
             {
                 windowVector.x = Screen.width - windowProgr * 200;
-                windowVector.y = - 100 - windowVPos ;
+                windowVector.y = Mathf.Clamp(- 100 - windowVPos, 0, Screen.height - windowPos.height) ;
                 windowPos = GUILayout.Window(GetType().FullName.GetHashCode(), windowPos, WindowGUI, "MechJeb " + core.version, GUILayout.Width(200), GUILayout.Height(20));
             }
             else
@@ -155,7 +155,7 @@ namespace MuMech
             if (movingButton)
                 if (Input.GetMouseButton(1))
                 {
-                    windowVPos = Input.mousePosition.y - Screen.height - 50;
+                    windowVPos = Mathf.Clamp(Input.mousePosition.y - Screen.height - 50, - Screen.height, -100);
                 }
                 else if (Input.GetMouseButtonUp(1))
                 {
