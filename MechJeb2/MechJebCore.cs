@@ -228,7 +228,15 @@ namespace MuMech
         {
             LoadDelayedModules();
 
-            CheckControlledVessel(); //make sure our onFlyByWire callback is registered with the right vessel
+            if (!CheckControlledVessel()) //make sure our onFlyByWire callback is registered with the right vessel
+            {
+                // And if we changed controled vessel we most likely undocked so 
+                // let disable everyone before we crash into something
+                foreach (ComputerModule module in computerModules)
+                {
+                    module.enabled = false;
+                }
+            }
 
             if (this != vessel.GetMasterMechJeb() || (HighLogic.LoadedSceneIsFlight && !vessel.isActiveVessel))
             {
