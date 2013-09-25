@@ -210,11 +210,6 @@ namespace MuMech
             base.WindowGUI(windowID);
         }
 
-        public override void OnModuleDisabled()
-        {
-            target = Target.OFF;
-        }
-
         public void Engage()
         {
             Quaternion attitude = new Quaternion();
