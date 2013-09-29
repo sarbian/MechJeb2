@@ -12,7 +12,9 @@ namespace MuMech
 
         public PIDControllerV pid;
 
-        public double Kp = 0.5, Ki = 0, Kd = 0;
+        public double Kp = 0.2, Ki = 0, Kd = 0.02;
+
+        Vector3d lastAct = Vector3d.zero;
 
         [ToggleInfoItem("Conserve RCS fuel", InfoItem.Category.Thrust)]
         public bool conserveFuel = true;
@@ -30,6 +32,7 @@ namespace MuMech
         public override void OnModuleEnabled()
         {
             pid = new PIDControllerV(Kp, Ki, Kd, 1, -1);
+            lastAct = Vector3d.zero;
             base.OnModuleEnabled();
         }
 
@@ -55,6 +58,10 @@ namespace MuMech
             worldVelocityDelta += TimeWarp.fixedDeltaTime * vesselState.gravityForce; //account for one frame's worth of gravity
             Vector3d velocityDelta = Quaternion.Inverse(vessel.GetTransform().rotation) * worldVelocityDelta;
 
+            // Sarbian : Disable RCS conservation to see if it help with docking
+            //conserveFuel = false;
+
+
             if (!conserveFuel || (velocityDelta.magnitude > conserveThreshold))
             {
                 if (!vessel.ActionGroups[KSPActionGroup.RCS])
@@ -68,6 +75,7 @@ namespace MuMech
                 {
                     if (vesselState.rcsThrustAvailable[dir] > 0)
                     {
+                        //double dV = Math.Sign(Vector3d.Dot(velocityDelta, Vector6.directions[dir])) * Vector3d.Project(velocityDelta, Vector6.directions[dir]).magnitude  / (vesselState.rcsThrustAvailable[dir] * TimeWarp.fixedDeltaTime / vesselState.mass);
                         double dV = Vector3d.Dot(velocityDelta, Vector6.directions[dir]) / (vesselState.rcsThrustAvailable[dir] * TimeWarp.fixedDeltaTime / vesselState.mass);
                         if (dV > 0)
                         {
@@ -76,11 +84,15 @@ namespace MuMech
                     }
                 }
 
-                rcs = pid.Compute(rcs);
+                //rcs = pid.Compute(rcs, rcs - lastAct); // Having an Omega would be nice but each test made it worse
+                rcs = pid.Compute(rcs, Vector3d.zero);
+
+                //rcs = lastAct + (rcs - lastAct) * (1 / ((0.5 / TimeWarp.fixedDeltaTime) + 1));
+                lastAct = rcs;
 
                 s.X = Mathf.Clamp((float)rcs.x, -1, 1);
-                s.Y = Mathf.Clamp((float)rcs.z, -1, 1);
-                s.Z = Mathf.Clamp((float)rcs.y, -1, 1);
+                s.Y = Mathf.Clamp((float)rcs.z, -1, 1); //note that z and
+                s.Z = Mathf.Clamp((float)rcs.y, -1, 1); //y must be swapped
             }
             else if (conserveFuel)
             {

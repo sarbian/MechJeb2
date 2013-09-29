@@ -27,6 +27,7 @@ namespace MuMech
         public override void OnStart(PartModule.StartState state)
         {
             autopilot = core.GetComputerModule<MechJebModuleAscentAutopilot>();
+            if(autopilot != null) desiredInclination = autopilot.desiredInclination;
         }
 
         public override void OnModuleEnabled()
@@ -35,7 +36,6 @@ namespace MuMech
 
         public override void OnModuleDisabled()
         {
-            autopilot.users.Remove(this);
             if (core.target.NormalTargetExists && (core.target.Name == TARGET_NAME)) core.target.Unset();
             launchingToPlane = false;
             launchingToRendezvous = false;
@@ -95,16 +95,13 @@ namespace MuMech
 
             GuiUtils.SimpleTextBox("Orbit inclination", desiredInclination, "º");
 
-            core.thrust.limitToPreventOverheats = GUILayout.Toggle(core.thrust.limitToPreventOverheats, "Prevent overheats");
-            core.thrust.limitToTerminalVelocity = GUILayout.Toggle(core.thrust.limitToTerminalVelocity, "Limit to terminal velocity");
-            GUILayout.BeginHorizontal();
-            core.thrust.limitAcceleration = GUILayout.Toggle(core.thrust.limitAcceleration, "Limit acceleration to", GUILayout.ExpandWidth(false));
-            core.thrust.maxAcceleration.text = GUILayout.TextField(core.thrust.maxAcceleration.text, GUILayout.ExpandWidth(true));
-            GUILayout.Label("m/s²", GUILayout.ExpandWidth(false));
-            GUILayout.EndHorizontal();
+            core.thrust.LimitToPreventOverheatsInfoItem();
+            core.thrust.LimitToTerminalVelocityInfoItem();
+            core.thrust.LimitAccelerationInfoItem();
             autopilot.correctiveSteering = GUILayout.Toggle(autopilot.correctiveSteering, "Corrective steering");
 
-            core.staging.AutostageInfoItem();
+            autopilot.autostage = GUILayout.Toggle(autopilot.autostage, "Autostage");
+            if(autopilot.autostage) core.staging.AutostageSettingsInfoItem();
 
             core.node.autowarp = GUILayout.Toggle(core.node.autowarp, "Auto-warp");
 
@@ -161,11 +158,20 @@ namespace MuMech
 
                     if (GUILayout.Button("Abort")) launchingToPlane = launchingToRendezvous = false;
                 }
+            }
 
-                if (autopilot.enabled)
-                {
-                    GUILayout.Label("Autopilot status: " + autopilot.status);
-                }
+            if (autopilot != null && autopilot.enabled)
+            {
+                GUILayout.Label("Autopilot status: " + autopilot.status);
+
+                // Show to the user if the special case for cirulirising earlier applied to get some feedback
+                // TODO : remove after I get feedback and put back autopilot.mode private
+                double circularSpeed = OrbitalManeuverCalculator.CircularOrbitSpeed(mainBody, orbit.ApR);
+                double apoapsisSpeed = orbit.SwappedOrbitalVelocityAtUT(orbit.NextApoapsisTime(vesselState.time)).magnitude;
+                double circularizeBurnTime = (circularSpeed - apoapsisSpeed) / vesselState.limitedMaxThrustAccel;
+                if (autopilot.mode == MechJebModuleAscentAutopilot.AscentMode.COAST_TO_APOAPSIS && vesselState.limitedMaxThrustAccel > 0 && orbit.timeToAp < circularizeBurnTime / 1.8)
+                    GUILayout.Label("Early circularization");
+
             }
 
             MechJebModuleAscentPathEditor editor = core.GetComputerModule<MechJebModuleAscentPathEditor>();

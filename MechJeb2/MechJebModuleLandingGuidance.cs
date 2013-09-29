@@ -26,10 +26,20 @@ namespace MuMech
         {
             GUILayout.BeginVertical();
 
-            GUILayout.Label("Target coordinates:");
+            if (core.target.PositionTargetExists)
+            {
+                GUILayout.Label("Target coordinates:");
 
-            core.target.targetLatitude.DrawEditGUI(EditableAngle.Direction.NS);
-            core.target.targetLongitude.DrawEditGUI(EditableAngle.Direction.EW);
+                core.target.targetLatitude.DrawEditGUI(EditableAngle.Direction.NS);
+                core.target.targetLongitude.DrawEditGUI(EditableAngle.Direction.EW);
+            }
+            else
+            {
+                if (GUILayout.Button("Enter target coordinates"))
+                {
+                    core.target.SetPositionTarget(mainBody, core.target.targetLatitude, core.target.targetLongitude);
+                }
+            }
 
             if (GUILayout.Button("Pick target on map")) core.target.PickPositionTargetOnMap();
 
@@ -41,7 +51,8 @@ namespace MuMech
                 }
             }
 
-            core.node.autowarp = GUILayout.Toggle(core.node.autowarp, "Auto-warp");
+            if (autopilot != null) core.node.autowarp = GUILayout.Toggle(core.node.autowarp, "Auto-warp");
+
             bool active = GUILayout.Toggle(predictor.enabled, "Show landing predictions");
             if (predictor.enabled != active)
             {
@@ -72,7 +83,9 @@ namespace MuMech
                 else
                 {
                     GUILayout.BeginHorizontal();
+                    if (!core.target.PositionTargetExists) GUI.enabled = false;
                     if (GUILayout.Button("Land at target")) autopilot.LandAtPositionTarget(this);
+                    GUI.enabled = true;
                     if (GUILayout.Button("Land somewhere")) autopilot.LandUntargeted(this);
                     GUILayout.EndHorizontal();
                 }
@@ -84,7 +97,7 @@ namespace MuMech
 
             GUILayout.EndVertical();
 
-            GUI.DragWindow();
+            base.WindowGUI(windowID);
         }
 
         void DrawGUIPrediction()

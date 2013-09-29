@@ -22,7 +22,7 @@ namespace MuMech
 
             foreach (Part p in parts) nodeLookup[p].FindSourceNodes(p, nodeLookup);
 
-            simStage = Staging.lastStage;
+            simStage = Staging.lastStage + 1;
 
             t = 0;
         }
@@ -31,9 +31,10 @@ namespace MuMech
         //and return stats for each stage
         public Stats[] SimulateAllStages(float throttle, float atmospheres)
         {
-            Stats[] stages = new Stats[simStage + 1];
+            Stats[] stages = new Stats[simStage];
 
-           //Debug.Log("SimulateAllStages");
+            //Debug.Log("SimulateAllStages starting from stage " + simStage);
+            SimulateStageActivation();
 
             while (simStage >= 0)
             {
@@ -122,8 +123,6 @@ namespace MuMech
         {
             simStage--;
 
-            //Debug.Log("Simulating activation of stage " + simStage);
-
             List<FuelNode> decoupledNodes = nodes.Where(n => n.decoupledInStage == simStage).ToList();
 
             foreach (FuelNode d in decoupledNodes) nodes.Remove(d); //remove the decoupled nodes from the simulated ship
@@ -137,9 +136,10 @@ namespace MuMech
         //Whether we've used up the current stage
         public bool AllowedToStage()
         {
+            //Debug.Log("Checking whether allowed to stage at t = " + t);
+
             List<FuelNode> activeEngines = FindActiveEngines();
 
-            //Debug.Log("Checking whether allowed to stage at t = " + t);
             //Debug.Log("  activeEngines.Count = " + activeEngines.Count);
 
             //if no engines are active, we can always stage
@@ -154,6 +154,7 @@ namespace MuMech
             //if staging would decouple an active engine or non-empty fuel tank, we're not allowed to stage
             foreach (FuelNode n in nodes)
             {
+                //Debug.Log(n.partName + " is sepratron? " + n.isSepratron);
                 if (n.decoupledInStage == (simStage - 1) && !n.isSepratron)
                 {
                     if (activeEngines.Contains(n) || n.ContainsResources(burnedResources))
@@ -190,6 +191,7 @@ namespace MuMech
         //Returns a list of engines that fire during the current simulated stage.
         public List<FuelNode> FindActiveEngines()
         {
+            //Debug.Log("Finding active engines: excluding resource considerations, there are " + nodes.Where(n => n.isEngine && n.inverseStage >= simStage).Count());
             return nodes.Where(n => n.isEngine && n.inverseStage >= simStage && n.CanDrawNeededResources(nodes)).ToList();
         }
 
@@ -242,7 +244,7 @@ namespace MuMech
         Dictionary<int, float> resourceConsumptions = new Dictionary<int, float>();                   //the resources this part consumes per unit time when active at full throttle
         DefaultableDictionary<int, float> resourceDrains = new DefaultableDictionary<int, float>(0);  //the resources being drained from this part per unit time at the current simulation time
 
-        const float DRAINED = 1.0f; //if a resource amount falls below this amount we say that the resource has been drained
+        const float DRAINED = 0.1f; //if a resource amount falls below this amount we say that the resource has been drained
 
         FloatCurve ispCurve;                     //the function that gives Isp as a function of atmospheric pressure for this part, if it's an engine
         Dictionary<int, float> propellantRatios; //ratios of propellants used by this engine
@@ -284,7 +286,7 @@ namespace MuMech
             //note which resources this part has stored
             foreach (PartResource r in part.Resources)
             {
-                if (r.info.name != "ElectricCharge") resources[r.info.id] = (float)r.amount;
+                if (r.info.name != "ElectricCharge" && r.info.name != "Megajoules") resources[r.info.id] = (float)r.amount;
                 resourcesUnobtainableFromParent.Add(r.info.id);
             }
 
@@ -304,7 +306,7 @@ namespace MuMech
                     ispCurve = engine.atmosphereCurve;
 
                     propellantSumRatioTimesDensity = engine.propellants.Sum(prop => prop.ratio * MuUtils.ResourceDensity(prop.id));
-                    propellantRatios = engine.propellants.Where(prop => prop.name != "ElectricCharge").ToDictionary(prop => prop.id, prop => prop.ratio);
+					propellantRatios = engine.propellants.Where(prop => prop.name != "ElectricCharge" && prop.name != "Megajoules").ToDictionary(prop => prop.id, prop => prop.ratio);
                 }
             }
 
@@ -315,7 +317,7 @@ namespace MuMech
             Part p = part;
             while (true)
             {
-                if (p.IsDecoupler())
+                if (p.IsDecoupler() || p.IsLaunchClamp())
                 {
                     if (p.inverseStage > decoupledInStage) decoupledInStage = p.inverseStage;
                 }
@@ -328,15 +330,11 @@ namespace MuMech
         {
             if (isEngine)
             {
-                //Debug.Log("Setting consumption rates for engine " + partName);
-
                 float Isp = ispCurve.Evaluate(atmospheres);
                 float massFlowRate = (throttle * maxThrust) / (Isp * 9.81f);
 
                 //propellant consumption rate = ratio * massFlowRate / sum(ratio * density)
                 resourceConsumptions = propellantRatios.Keys.ToDictionary(id => id, id => propellantRatios[id] * massFlowRate / propellantSumRatioTimesDensity);
-
-                //Debug.Log("   ...resourceConsumptions.Keys.Length = " + resourceConsumptions.Keys.Count);
             }
         }
 
@@ -356,24 +354,38 @@ namespace MuMech
             surfaceMounted = true;
             if (part.parent != null) this.parent = nodeLookup[part.parent];
 
+            ModuleDockingNode dockNode;
+            // In-flight docked ports attach only one way. This finds the docked port in the other direction.
+            // However, this doesn't work in the VAB/SPH (as there is no vessel), and isn't needed there anyway.
+            if (part.vessel && (dockNode = part.Modules.OfType<ModuleDockingNode>().FirstOrDefault()))
+            {
+                uint dockedPartUId = dockNode.dockedPartUId;
+                Part p = part.vessel[dockedPartUId];
+                //Debug.Log (String.Format("[MJ] docking port {0} {1}", part, p));
+                if (p)
+                    sourceNodes.Add(nodeLookup[p]);
+            }
+
             //we can (sometimes) draw fuel from stacked parts
             foreach (AttachNode attachNode in part.attachNodes)
             {
                 //decide if it's possible to draw fuel through this node:
                 if (attachNode.attachedPart != null                            //if there is a part attached here            
                     && attachNode.nodeType == AttachNode.NodeType.Stack        //and the attached part is stacked (rather than surface mounted)
-                    && attachNode.attachedPart.fuelCrossFeed                   //and the attached part allows fuel flow
                     && !(part.NoCrossFeedNodeKey.Length > 0                    //and this part does not forbid fuel flow
                          && attachNode.id.Contains(part.NoCrossFeedNodeKey)))  //    through this particular node
                 {
-                    sourceNodes.Add(nodeLookup[attachNode.attachedPart]);
+                    if (part.fuelCrossFeed) sourceNodes.Add(nodeLookup[attachNode.attachedPart]);
                     if (attachNode.attachedPart == part.parent) surfaceMounted = false;
                 }
             }
 
             //Parts can draw resources from their parents
             //(exception: surface mounted fuel tanks cannot)
-            if (part.parent != null && part.parent.fuelCrossFeed) sourceNodes.Add(nodeLookup[part.parent]);
+            if (part.parent != null && part.fuelCrossFeed) sourceNodes.Add(nodeLookup[part.parent]);
+
+            //Debug.Log("source nodes for part " + partName);
+            //foreach (FuelNode n in sourceNodes) Debug.Log("    " + n.partName);
         }
 
         //call this when a node no longer exists, so that this node knows that it's no longer a valid source
@@ -579,7 +591,7 @@ namespace MuMech
                     {
                         if (n.CanSupplyResourceRecursive(type, newVisited)) return true;
                     }
-                }
+                }   
             }
 
             return false;

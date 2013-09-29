@@ -125,7 +125,7 @@ namespace MuMech
             angle -= degrees;
             minutes = (int)(60 * angle);
             angle -= minutes / 60;
-            seconds = 3600 * angle;
+            seconds = Math.Round(3600 * angle);
         }
 
         public static implicit operator double(EditableAngle x)
@@ -199,7 +199,8 @@ namespace MuMech
     {
         void OnGUI()
         {
-            GuiUtils.LoadSkin();
+            GuiUtils.CopyDefaultSkin();
+            if (GuiUtils.skin == null) GuiUtils.skin = GuiUtils.defaultSkin;
             GameObject.Destroy(gameObject);
         }
     }
@@ -224,12 +225,29 @@ namespace MuMech
             }
         }
 
+        public enum SkinType { Default, MechJeb1 }
         public static GUISkin skin;
+        public static GUISkin defaultSkin;
 
-        public static void LoadSkin()
+        public static void CopyDefaultSkin()
         {
             GUI.skin = null;
-            skin = (GUISkin)GameObject.Instantiate(GUI.skin);
+            defaultSkin = (GUISkin)GameObject.Instantiate(GUI.skin);
+        }
+
+        public static void LoadSkin(SkinType skinType)
+        {
+            switch (skinType)
+            {
+                case SkinType.Default:
+                    if (defaultSkin == null) CopyDefaultSkin();
+                    skin = defaultSkin;
+                    break;
+
+                case SkinType.MechJeb1:
+                    skin = AssetBase.GetGUISkin("KSP window 2");
+                    break;
+            }
         }
 
         public static void CheckSkin()
@@ -290,15 +308,62 @@ namespace MuMech
 
         public static int ArrowSelector(int index, int modulo, string label)
         {
-            Action drawLabel = () => GUILayout.Label(label, new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter });
+            Action drawLabel = () => GUILayout.Label(label, new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, stretchWidth = true });
             return ArrowSelector(index, modulo, drawLabel);
         }
 
-        public static string TimeToDHMS(double seconds)
+
+        //from http://wiki.unity3d.com/index.php?title=PopupList
+        public static bool List(Rect position, ref bool showList, ref int listEntry, 
+            GUIContent buttonContent, string[] list, GUIStyle listStyle)
+        {
+            return List(position, ref showList, ref listEntry, buttonContent, list, "button", "box", listStyle);
+        }
+
+        public static bool List(Rect position, ref bool showList, ref int listEntry, GUIContent buttonContent, string[] list,
+                                 GUIStyle buttonStyle, GUIStyle boxStyle, GUIStyle listStyle)
+        {
+            int controlID = GUIUtility.GetControlID(865645, FocusType.Passive);
+            bool done = false;
+            switch (Event.current.GetTypeForControl(controlID))
+            {
+                case EventType.mouseDown:
+                    if (position.Contains(Event.current.mousePosition))
+                    {
+                        GUIUtility.hotControl = controlID;
+                        showList = true;
+                    }
+                    break;
+                case EventType.mouseUp:
+                    if (showList)
+                    {
+                        done = true;
+                    }
+                    break;
+            }
+
+            GUI.Label(position, buttonContent, buttonStyle);
+            if (showList)
+            {
+                Rect listRect = new Rect(position.x, position.y, position.width, list.Length * 20);
+                GUI.Box(listRect, "", boxStyle);
+                listEntry = GUI.SelectionGrid(listRect, listEntry, list, 1, listStyle);
+            }
+            if (done)
+            {
+                showList = false;
+            }
+            return done;
+        }
+
+
+
+        public static string TimeToDHMS(double seconds, int decimalPlaces = 0)
         {
             if (double.IsInfinity(seconds) || double.IsNaN(seconds)) return "Inf";
 
             string ret = "";
+            bool showSecondsDecimals = decimalPlaces > 0 && seconds < 60;
 
             try
             {
@@ -317,7 +382,13 @@ namespace MuMech
                     bool first = ret.Length < 2;
                     if (!first || (n != 0) || (i == units.Length - 1 && ret == ""))
                     {
-                        ret += (first ? "" : " ") + (first ? n.ToString() : n.ToString("00")) + units[i];
+                        if (!first) ret += " ";
+                        
+                        if (showSecondsDecimals) ret += seconds.ToString("0." + new string('0', decimalPlaces));
+                        else if (first) ret += n.ToString();
+                        else ret += n.ToString("00");
+
+                        ret += units[i];
                     }
                     seconds -= n * intervals[i];
                 }
@@ -407,8 +478,10 @@ namespace MuMech
         public static string ToStringDecimal(double latitude, double longitude, bool newline = false, int precision = 3)
         {
             double clampedLongitude = MuUtils.ClampDegrees180(longitude);
-            return latitude.ToString("F" + precision) + "° " + (latitude > 0 ? "N" : "S") + (newline ? "\n" : ", ")
-                + clampedLongitude.ToString("F" + precision) + "° " + (clampedLongitude > 0 ? "E" : "W");
+            double latitudeAbs  = Math.Abs(latitude);
+            double longitudeAbs = Math.Abs(clampedLongitude);
+            return latitudeAbs.ToString("F" + precision) + "° " + (latitude > 0 ? "N" : "S") + (newline ? "\n" : ", ")
+                + longitudeAbs.ToString("F" + precision) + "° " + (clampedLongitude > 0 ? "E" : "W");
         }
 
         public string ToStringDecimal(bool newline = false, int precision = 3)

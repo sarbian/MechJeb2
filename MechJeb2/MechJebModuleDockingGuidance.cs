@@ -12,6 +12,8 @@ namespace MuMech
 
         MechJebModuleDockingAutopilot autopilot;
 
+        public static GUIStyle btNormal, btActive;
+
         public override void OnStart(PartModule.StartState state)
         {
             autopilot = core.GetComputerModule<MechJebModuleDockingAutopilot>();
@@ -32,6 +34,7 @@ namespace MuMech
             {
                 GUIStyle s = new GUIStyle(GUI.skin.label);
                 s.normal.textColor = Color.yellow;
+                GUILayout.Label("Warning: target is not a docking port. Right click the target docking port and select \"Set as target\"", s);
             }
 
             bool onAxisNodeExists = false;
@@ -53,6 +56,17 @@ namespace MuMech
 
             bool active = GUILayout.Toggle(autopilot.enabled, "Autopilot enabled");
             GuiUtils.SimpleTextBox("Speed limit", autopilot.speedLimit, "m/s");
+            if (autopilot.speedLimit < 0)
+                autopilot.speedLimit = 0;
+
+
+            GUILayout.BeginHorizontal();
+            autopilot.forceRol = GUILayout.Toggle(autopilot.forceRol, "Force Roll :", GUILayout.ExpandWidth(false));
+
+            autopilot.rol.text = GUILayout.TextField(autopilot.rol.text, GUILayout.Width(30));
+            GUILayout.Label("°", GUILayout.ExpandWidth(false));
+            GUILayout.EndHorizontal();
+
             if (autopilot.enabled != active)
             {
                 if (active)
