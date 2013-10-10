@@ -49,11 +49,11 @@ namespace MuMech
         {
             if (controlledVessel == vessel) return true;
 
-            print("CheckControlledVessel ");
-            if (vessel != null)
-            print("MechJebCore" + vessel.name);
-            if (controlledVessel != null)
-            print("MechJebCore" + controlledVessel.name);
+            //print("CheckControlledVessel ");
+            //if (vessel != null)
+            //print("MechJebCore" + vessel.name);
+            //if (controlledVessel != null)
+            //print("MechJebCore" + controlledVessel.name);
 
             //else we have an onFlyByWire callback registered with the wrong vessel:
             //handle vessel changes due to docking/undocking
@@ -187,9 +187,9 @@ namespace MuMech
 
         public override void OnActive()
         {
-            print("MechJebCore OnActive for ");
-            if (vessel != null)
-            print("MechJebCore" + vessel.name);
+            //print("MechJebCore OnActive for ");
+            //if (vessel != null)
+            //print("MechJebCore" + vessel.name);
             foreach (ComputerModule module in computerModules)
             {
                 try
@@ -205,9 +205,9 @@ namespace MuMech
 
         public override void OnInactive()
         {
-            print("OnInactive ");
-            if (vessel != null)
-            print("MechJebCore" + vessel.name);
+            //print("OnInactive ");
+            //if (vessel != null)
+            //print("MechJebCore" + vessel.name);
             foreach (ComputerModule module in computerModules)
             {
                 try
@@ -223,9 +223,9 @@ namespace MuMech
 
         public override void OnAwake()
         {
-            print("OnAwake ");
-            if (vessel != null)
-            print("MechJebCore" + vessel.name);
+            //print("OnAwake ");
+            //if (vessel != null)
+            //print("MechJebCore" + vessel.name);
             foreach (ComputerModule module in computerModules)
             {
                 try
@@ -404,9 +404,9 @@ namespace MuMech
 
         public override void OnLoad(ConfigNode sfsNode)
         {
-            print("OnLoad ");
-            if (vessel != null)
-            print("MechJebCore" + vessel.name);
+            //print("OnLoad ");
+            //if (vessel != null)
+            //print("MechJebCore" + vessel.name);
             if (GuiUtils.skin == null)
             {
                 //GuiUtils.skin = new GUISkin();
