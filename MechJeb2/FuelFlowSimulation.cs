@@ -22,7 +22,9 @@ namespace MuMech
 
             foreach (Part p in parts) nodeLookup[p].FindSourceNodes(p, nodeLookup);
 
-            simStage = Staging.lastStage + 1;
+            //simStage = Staging.lastStage + 1;
+            simStage = (HighLogic.LoadedSceneIsFlight ? Staging.CurrentStage + (FlightGlobals.ActiveVessel.situation == Vessel.Situations.PRELAUNCH ? 0 : 1) : Staging.lastStage + 1);
+            // only skip current stage at launch as it is empty there
 
             t = 0;
         }
@@ -31,7 +33,7 @@ namespace MuMech
         //and return stats for each stage
         public Stats[] SimulateAllStages(float throttle, float atmospheres)
         {
-            Stats[] stages = new Stats[simStage];
+        	Stats[] stages = new Stats[simStage];
 
             //Debug.Log("SimulateAllStages starting from stage " + simStage);
             SimulateStageActivation();
@@ -193,7 +195,7 @@ namespace MuMech
         {
             //Debug.Log("Finding active engines: excluding resource considerations, there are " + nodes.Where(n => n.isEngine && n.inverseStage >= simStage).Count());
             return nodes.Where(n => n.isEngine && n.inverseStage >= simStage && n.CanDrawNeededResources(nodes) &&
-                               (n.inverseStage == (HighLogic.LoadedSceneIsFlight ? FlightGlobals.ActiveVessel.currentStage : -1) ? n.isActive : true)).ToList();
+                               (n.inverseStage == (HighLogic.LoadedSceneIsFlight ? Staging.CurrentStage : -1) ? n.isActive : true)).ToList();
         }
 
         //A Stats struct describes the result of the simulation over a certain interval of time (e.g., one stage)
@@ -283,6 +285,7 @@ namespace MuMech
             inverseStage = part.inverseStage;
             isFuelLine = (part is FuelLine);
             isSepratron = part.IsSepratron();
+            isActive = false;
             partName = part.partInfo.name;
 
             //note which resources this part has stored
