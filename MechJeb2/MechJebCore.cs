@@ -7,6 +7,7 @@ using System.Reflection;
 using UnityEngine;
 using KSP.IO;
 
+
 namespace MuMech
 {
     public class MechJebCore : PartModule, IComparable<MechJebCore>
@@ -247,10 +248,11 @@ namespace MuMech
             {
                 // And if we changed controled vessel we most likely undocked so 
                 // let disable everyone before we crash into something
-                foreach (ComputerModule module in computerModules)
-                {
-                    module.enabled = false;
-                }
+                print("CheckControlledVessel was false for " + vessel.name);
+                //foreach (ComputerModule module in computerModules)
+                //{
+                //    module.enabled = false;
+                //}
             }
 
             if (this != vessel.GetMasterMechJeb() || (HighLogic.LoadedSceneIsFlight && !vessel.isActiveVessel))
