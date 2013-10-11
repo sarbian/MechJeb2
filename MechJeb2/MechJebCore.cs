@@ -7,6 +7,7 @@ using System.Reflection;
 using UnityEngine;
 using KSP.IO;
 
+
 namespace MuMech
 {
     public class MechJebCore : PartModule, IComparable<MechJebCore>
@@ -48,6 +49,12 @@ namespace MuMech
         bool CheckControlledVessel()
         {
             if (controlledVessel == vessel) return true;
+
+            //print("CheckControlledVessel ");
+            //if (vessel != null)
+            //print("MechJebCore" + vessel.name);
+            //if (controlledVessel != null)
+            //print("MechJebCore" + controlledVessel.name);
 
             //else we have an onFlyByWire callback registered with the wrong vessel:
             //handle vessel changes due to docking/undocking
@@ -181,6 +188,9 @@ namespace MuMech
 
         public override void OnActive()
         {
+            //print("MechJebCore OnActive for ");
+            //if (vessel != null)
+            //print("MechJebCore" + vessel.name);
             foreach (ComputerModule module in computerModules)
             {
                 try
@@ -196,6 +206,9 @@ namespace MuMech
 
         public override void OnInactive()
         {
+            //print("OnInactive ");
+            //if (vessel != null)
+            //print("MechJebCore" + vessel.name);
             foreach (ComputerModule module in computerModules)
             {
                 try
@@ -211,6 +224,9 @@ namespace MuMech
 
         public override void OnAwake()
         {
+            //print("OnAwake ");
+            //if (vessel != null)
+            //print("MechJebCore" + vessel.name);
             foreach (ComputerModule module in computerModules)
             {
                 try
@@ -228,7 +244,16 @@ namespace MuMech
         {
             LoadDelayedModules();
 
-            CheckControlledVessel(); //make sure our onFlyByWire callback is registered with the right vessel
+            if (!CheckControlledVessel()) //make sure our onFlyByWire callback is registered with the right vessel
+            {
+                // And if we changed controled vessel we most likely undocked so 
+                // let disable everyone before we crash into something
+                print("CheckControlledVessel was false for " + vessel.name);
+                //foreach (ComputerModule module in computerModules)
+                //{
+                //    module.enabled = false;
+                //}
+            }
 
             if (this != vessel.GetMasterMechJeb() || (HighLogic.LoadedSceneIsFlight && !vessel.isActiveVessel))
             {
@@ -381,6 +406,9 @@ namespace MuMech
 
         public override void OnLoad(ConfigNode sfsNode)
         {
+            //print("OnLoad ");
+            //if (vessel != null)
+            //print("MechJebCore" + vessel.name);
             if (GuiUtils.skin == null)
             {
                 //GuiUtils.skin = new GUISkin();
